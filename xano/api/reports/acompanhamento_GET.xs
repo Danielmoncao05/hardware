@@ -273,4 +273,5 @@ query acompanhamento verb=GET {
     nextPage    : $pagina.nextPage
     curPage     : $pagina.curPage
   }
+  guid = "pTWvg6bfykD8OB9csEv6zBzaTJY"
 }
