@@ -1,8 +1,10 @@
 """Testes unitários locais dos auxiliares do frontend e do cliente da API (sem backend)."""
 
 import asyncio
+import datetime as dt
 import json
 import re
+import time
 from pathlib import Path
 
 import httpx
@@ -36,6 +38,97 @@ def test_stale_submit_drops_a_repeated_submit():
     # Tratado depois que o primeiro envio deu certo e incrementou a chave
     assert stale_submit({"_form_key": "3"}, 4)
     assert stale_submit({}, 0)
+
+
+def test_option_lists_are_reused_within_ttl():
+    """Cada troca de página recarregava todas as listas e estourava o limite de requisições do plano Free."""
+    from hardware.options import OptionsState
+
+    calls = []
+
+    class Fake:
+        _options_at: dict = {}
+
+        async def _fetch_options(self, kind):
+            calls.append(kind)
+            if kind == "fabricantes" and calls.count(kind) == 1:
+                raise api.ApiError(429, "limite")
+            return [{"id": 1, "nome": "X"}]
+
+        def _set_options(self, kind, rows):
+            self._options_at = self._options_at | {kind: time.time()}
+
+    fake = Fake()
+    load = OptionsState._load_options
+    _run(load(fake, "categorias", "fabricantes"))
+    assert calls == ["categorias", "fabricantes"]
+    # categorias está em cache; fabricantes falhou antes e é buscado de novo
+    _run(load(fake, "categorias", "fabricantes"))
+    assert calls == ["categorias", "fabricantes", "fabricantes"]
+    _run(load(fake, "categorias", force=True))
+    assert calls[-1] == "categorias" and len(calls) == 4
+
+
+def test_list_pages_are_cached_and_any_write_clears_them(mock_transport):
+    """Voltar a uma aba já vista não chama a API de novo; depois de qualquer alteração, chama."""
+    from hardware.state import AuthState
+
+    captured, responses = mock_transport
+
+    class Fake:
+        _token = "tok"
+        _list_cache: dict = {}
+
+        def _clear_session(self):
+            pass
+
+        # call é público, então o Reflex o expõe na classe como EventHandler; .fn é a função original
+        call = AuthState.call.fn
+        _cached_list = AuthState._cached_list
+
+    fake = Fake()
+    responses += [httpx.Response(200, json={"items": [1]}), httpx.Response(200, json={}), httpx.Response(200, json={"items": [2]})]
+    assert _run(fake._cached_list("maintenance", "ocorrencias", {"status": "open"})) == {"items": [1]}
+    assert _run(fake._cached_list("maintenance", "ocorrencias", {"status": "open"})) == {"items": [1]}
+    assert len(captured) == 1
+    _run(fake.call("POST", "maintenance", "ocorrencias", json={}))
+    assert _run(fake._cached_list("maintenance", "ocorrencias", {"status": "open"})) == {"items": [2]}
+    assert len(captured) == 3
+
+
+def test_local_tabs_follow_api_rules():
+    """Com a lista completa, as abas são filtradas no app; as regras precisam ser as mesmas da API."""
+    from types import SimpleNamespace
+
+    from hardware.options import page_slice
+    from hardware.pages.maintenance import MaintenanceState
+    from hardware.pages.occurrences import OccurrenceState
+
+    occ = [
+        {"id": 1, "status": "open", "responsavel_id": 7},
+        {"id": 2, "status": "in_progress", "responsavel_id": 8},
+        {"id": 3, "status": "resolved", "responsavel_id": 7},
+    ]
+    rows = lambda queue: [o["id"] for o in OccurrenceState._local_rows(SimpleNamespace(_all=occ, queue=queue, user_id=7))]  # noqa: E731
+    assert rows("open") == [1] and rows("resolved") == [3] and rows("all") == [1, 2, 3]
+    assert rows("mine") == [1]  # só as abertas/em andamento atribuídas a mim
+
+    today = dt.datetime.now(dt.timezone.utc).date()
+    past, future = str(today - dt.timedelta(days=3)), str(today + dt.timedelta(days=3))
+    man = [
+        {"id": 1, "tipo": "preventive", "status": "planned", "data_planejada": past, "responsavel_id": 7},
+        {"id": 2, "tipo": "corrective", "status": "planned", "data_planejada": past, "responsavel_id": 8},
+        {"id": 3, "tipo": "preventive", "status": "planned", "data_planejada": future, "responsavel_id": 8},
+        {"id": 4, "tipo": "preventive", "status": "completed", "data_planejada": past, "responsavel_id": 7},
+    ]
+    views = lambda view: [m["id"] for m in MaintenanceState._local_rows(SimpleNamespace(_all=man, view=view, user_id=7))]  # noqa: E731
+    assert views("overdue") == [1]  # corretiva e concluída ficam de fora
+    assert views("upcoming") == [3]
+    assert views("mine") == [1, 4]
+    assert views("all") == [1, 2, 3, 4]
+
+    assert page_slice(list(range(30)), 1) == (list(range(25)), True)
+    assert page_slice(list(range(30)), 2) == (list(range(25, 30)), False)
 
 
 def test_now_local_vars_are_not_cached():

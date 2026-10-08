@@ -66,8 +66,11 @@ class CatalogState(OptionsState):
             self.rows = {"fabricantes": fab, "categorias": cat, "modelos": mod, "componentes": comp, "localizacoes": loc}
         except api.ApiError as err:
             self.error = err.message
-        # Os formulários de cadastro só oferecem referências ativas
-        await self._load_options("fabricantes", "categorias", "localizacoes")
+            return
+        # As listas de opções (só registros ativos) saem dos mesmos dados, sem novas requisições; assim um
+        # cadastro ou edição aparece na hora nos selects das outras páginas
+        for kind, rows in self.rows.items():
+            self._set_options(kind, [r for r in rows if r.get("ativo")])
 
     @rx.event
     def set_tab(self, value: str):

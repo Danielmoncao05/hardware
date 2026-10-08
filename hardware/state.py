@@ -5,15 +5,26 @@ vars com sublinhado ao navegador. As flags de permissão abaixo só decidem quai
 mostrados; a API verifica de novo toda operação.
 """
 
+import json
+import time
 from typing import Any
 
 import reflex as rx
 
 from . import api
 
+# Segundos em que o perfil carregado (auth/me) é reaproveitado entre páginas. O plano Free do Xano aceita poucas
+# requisições por janela, então consultar o perfil a cada troca de página deixava a navegação lenta.
+PROFILE_TTL = 60
+# Segundos em que uma página de listagem (ocorrências, manutenções, equipamentos) é reaproveitada
+LIST_CACHE_TTL = 30
+
 
 class AuthState(rx.State):
     _token: str = ""
+    _me_loaded_at: float = 0.0
+    # chave da consulta -> (momento, resposta); esvaziado por qualquer escrita e ao encerrar a sessão
+    _list_cache: dict[str, Any] = {}
 
     user_id: int = 0
     user_name: str = ""
@@ -74,13 +85,38 @@ class AuthState(rx.State):
 
     # ---- auxiliares de API para as subclasses ----
     async def call(self, method: str, group: str, path: str, **kwargs) -> Any:
-        """Chama a API com o token da sessão. Um 401 encerra a sessão."""
+        """Chama a API com o token da sessão. Um 401 encerra a sessão. Qualquer escrita (método diferente de GET)
+        esvazia o cache de listas, para nenhuma tela mostrar dados de antes da alteração."""
+        if method != "GET":
+            self._list_cache = {}
         try:
             return await api.request(method, group, path, token=self._token, **kwargs)
         except api.ApiError as err:
             if err.unauthorized:
                 self._clear_session()
             raise
+
+    async def _cached_list(self, group: str, path: str, params: dict) -> Any:
+        """GET de uma página de listagem, reaproveitado por LIST_CACHE_TTL segundos. Voltar a uma aba ou página
+        já vista fica instantâneo e economiza requisições do plano Free do Xano."""
+        now = time.time()
+        key = f"{group}|{path}|{json.dumps(params, sort_keys=True, default=str)}"
+        hit = self._list_cache.get(key)
+        if hit and now - hit[0] < LIST_CACHE_TTL:
+            return hit[1]
+        result = await self.call("GET", group, path, params=params)
+        fresh = {k: v for k, v in self._list_cache.items() if now - v[0] < LIST_CACHE_TTL}
+        self._list_cache = fresh | {key: (now, result)}
+        return result
+
+    # ---- parâmetros da URL (router.url; router.page foi descontinuado no Reflex 0.8.1) ----
+    def _query_param(self, key: str) -> str:
+        """Valor de um parâmetro da query string (?chave=valor), ou "" quando ausente."""
+        return self.router.url.query_parameters.get(key, "") or ""
+
+    def _path_id(self) -> int | None:
+        """O id numérico da rota dinâmica (ex.: /equipamentos/5/editar -> 5), ou None."""
+        return next((int(part) for part in self.router.url.path.split("/") if part.isdigit()), None)
 
     def _clear_session(self):
         self._token = ""
@@ -90,6 +126,8 @@ class AuthState(rx.State):
         self.role = ""
         self.permissions = []
         self.must_change_password = False
+        self._me_loaded_at = 0.0
+        self._list_cache = {}
 
     async def _load_me(self):
         me = await api.request("GET", "auth", "auth/me", token=self._token)
@@ -99,6 +137,7 @@ class AuthState(rx.State):
         self.role = me.get("role") or ""
         self.permissions = me.get("permissions") or []
         self.must_change_password = bool(me.get("deve_trocar_senha"))
+        self._me_loaded_at = time.time()
 
     # ---- eventos ----
     @rx.event
@@ -129,17 +168,19 @@ class AuthState(rx.State):
         return rx.redirect("/login")
 
     async def _guard(self, *permissions: str) -> list | None:
-        """Guard do on_load das páginas. Atualiza o perfil (para mudanças de perfil, permissão ou
-        habilitação valerem na hora) e devolve eventos de redirecionamento quando não há sessão ou
-        nenhuma das permissões informadas é concedida; devolve None quando a página pode carregar."""
+        """Guard do on_load das páginas. Atualiza o perfil quando ele tem mais de PROFILE_TTL segundos (mudanças de
+        perfil, permissão ou habilitação aparecem na interface em até esse tempo; a API aplica na hora) e devolve
+        eventos de redirecionamento quando não há sessão ou nenhuma das permissões informadas é concedida;
+        devolve None quando a página pode carregar."""
         if not self._token:
             self._clear_session()
             return [rx.redirect("/login")]
-        try:
-            await self._load_me()
-        except api.ApiError:
-            self._clear_session()
-            return [rx.redirect("/login")]
+        if time.time() - self._me_loaded_at > PROFILE_TTL:
+            try:
+                await self._load_me()
+            except api.ApiError:
+                self._clear_session()
+                return [rx.redirect("/login")]
         if self.must_change_password:
             # Senha temporária ainda ativa: nada mais pode ser usado até ela ser trocada
             return [rx.redirect("/trocar-senha")]

@@ -34,9 +34,8 @@ class RecoveryState(AuthState):
         """Define a nova senha com o link de uso único enviado por e-mail (reset/confirm, um único passo que nunca
         cria sessão)."""
         self.reset_error = ""
-        params = self.router.page.params
-        token = params.get("magic_token") or ""
-        email = params.get("email") or ""
+        token = self._query_param("magic_token")
+        email = self._query_param("email")
         password = form.get("password") or ""
         confirm = form.get("confirm_password") or ""
         if len(password) < 8 or not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):

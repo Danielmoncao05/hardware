@@ -2,12 +2,16 @@
 
 import datetime as dt
 import os
+import time
 from zoneinfo import ZoneInfo
 
 import reflex as rx
 
 from . import api
 from .state import AuthState
+
+# Segundos em que uma lista de opções carregada é reaproveitada entre páginas
+OPTIONS_TTL = 300
 
 
 class OptionsState(AuthState):
@@ -25,36 +29,49 @@ class OptionsState(AuthState):
     equip_options: list[dict] = []
     equip_searching: bool = False
 
-    async def _load_options(self, *kinds: str):
-        """Busca as opções ativas como listas [{value, label}], seguindo a paginação para nenhuma opção ficar de fora.
-        Em caso de erro, as listas ficam vazias."""
-        try:
-            if "localizacoes" in kinds:
-                rows = await self.call("GET", "inventory", "localizacoes")
-                self.localizacoes = [
-                    {"value": str(r["id"]), "label": r["nome"] + (f" ({r['parent']})" if r.get("parent") else "")}
-                    for r in rows
-                ]
-            if "categorias" in kinds:
-                rows = await self.call("GET", "inventory", "categorias")
-                self.categorias = [{"value": str(r["id"]), "label": r["nome"]} for r in rows]
-            if "fabricantes" in kinds:
-                rows = await self._fetch_all("inventory", "fabricantes")
-                self.fabricantes = [{"value": str(r["id"]), "label": r["nome"]} for r in rows]
-            if "modelos" in kinds:
-                rows = await self._fetch_all("inventory", "modelos")
-                self.modelos = [{"value": str(r["id"]), "label": f"{r['nome']} — {r['fabricante']} / {r['categoria']}"} for r in rows]
-            if "componentes" in kinds:
-                rows = await self._fetch_all("inventory", "componentes")
-                self.componentes = [{"value": str(r["id"]), "label": r["nome"]} for r in rows]
-            if "responsaveis_manutencao" in kinds:
-                rows = await self.call("GET", "maintenance", "responsaveis", params={"area": "maintenance"})
-                self.responsaveis_manutencao = [{"value": str(r["id"]), "label": r["name"]} for r in rows]
-            if "responsaveis_ocorrencia" in kinds:
-                rows = await self.call("GET", "maintenance", "responsaveis", params={"area": "occurrence"})
-                self.responsaveis_ocorrencia = [{"value": str(r["id"]), "label": r["name"]} for r in rows]
-        except api.ApiError:
-            pass
+    # Momento (time.time) em que cada lista de opções foi carregada; listas com menos de OPTIONS_TTL segundos
+    # são reaproveitadas entre páginas para poupar requisições ao Xano
+    _options_at: dict[str, float] = {}
+
+    async def _fetch_options(self, kind: str) -> list[dict]:
+        """Linhas ativas de um tipo de opção, seguindo a paginação para nenhuma opção ficar de fora."""
+        if kind in ("localizacoes", "categorias"):
+            return await self.call("GET", "inventory", kind)
+        if kind in ("fabricantes", "modelos", "componentes"):
+            return await self._fetch_all("inventory", kind)
+        area = "maintenance" if kind == "responsaveis_manutencao" else "occurrence"
+        return await self.call("GET", "maintenance", "responsaveis", params={"area": area})
+
+    def _set_options(self, kind: str, rows: list[dict]):
+        """Converte as linhas em [{value, label}] e marca a lista como recém-carregada."""
+        if kind == "localizacoes":
+            options = [{"value": str(r["id"]), "label": r["nome"] + (f" ({r['parent']})" if r.get("parent") else "")} for r in rows]
+        elif kind == "modelos":
+            options = [{"value": str(r["id"]), "label": f"{r['nome']} — {r['fabricante']} / {r['categoria']}"} for r in rows]
+        elif kind.startswith("responsaveis"):
+            options = [{"value": str(r["id"]), "label": r["name"]} for r in rows]
+        else:
+            options = [{"value": str(r["id"]), "label": r["nome"]} for r in rows]
+        setattr(self, kind, options)
+        self._options_at = self._options_at | {kind: time.time()}
+
+    async def _load_options(self, *kinds: str, force: bool = False):
+        """Carrega as listas de opções pedidas, reaproveitando as que têm menos de OPTIONS_TTL segundos
+        (force=True sempre busca de novo). Um erro deixa só a lista daquele tipo como estava."""
+        now = time.time()
+        for kind in kinds:
+            if not force and now - self._options_at.get(kind, 0.0) < OPTIONS_TTL:
+                continue
+            try:
+                self._set_options(kind, await self._fetch_options(kind))
+            except api.ApiError:
+                pass
+
+    async def _load_complete(self, group: str, path: str, params: dict) -> list[dict] | None:
+        """Todos os registros da consulta quando cabem em uma página da API (até 100); senão None.
+        Com a lista completa em mãos, as abas e a paginação são filtradas aqui, sem novas requisições."""
+        result = await self._cached_list(group, path, params | {"page": 1, "per_page": 100})
+        return result["items"] if result.get("nextPage") is None else None
 
     async def _search_equipment(self, query: str = "", preselect_id: str = ""):
         """Busca equipamentos ativos por nome, patrimônio ou número de série (primeiros 25 resultados).
@@ -80,6 +97,12 @@ class OptionsState(AuthState):
         """Busca enquanto digita, com debounce (dispensa o Enter, então nunca envia o formulário em volta)."""
         self.equip_query = value
         await self._search_equipment(value)
+
+
+def page_slice(rows: list[dict], page: int, size: int = 25) -> tuple[list[dict], bool]:
+    """Uma página de uma lista já carregada: (itens da página, se existe próxima)."""
+    start = (page - 1) * size
+    return rows[start : start + size], len(rows) > start + size
 
 
 def to_int(value) -> int | None:

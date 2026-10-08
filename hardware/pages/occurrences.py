@@ -20,7 +20,7 @@ from ..components import (
     text_area,
     text_input,
 )
-from ..options import OptionsState, local_to_ms, now_local_input, to_int
+from ..options import OptionsState, local_to_ms, now_local_input, page_slice, to_int
 
 
 class OccurrenceState(OptionsState):
@@ -37,33 +37,55 @@ class OccurrenceState(OptionsState):
     target: dict = {}
     form_error: str = ""
     saving: bool = False
+    # Todas as ocorrências do filtro de equipamento, quando cabem em uma resposta da API (None = paginar pela API)
+    _all: list[dict] | None = None
 
     @rx.event
     async def on_load(self):
         redirect = await self._guard("operational.read")
         if redirect:
             return redirect
-        self.equipamento_id = self.router.page.params.get("equipamento_id", "") or ""
+        self.equipamento_id = self._query_param("equipamento_id")
         self.page = 1
         self.report_open = False
         self.action = ""
-        await self._fetch()
+        await self._refresh()
         if self.can_report_occurrence:
             self.equip_query = ""
             await self._search_equipment("", self.equipamento_id)
         if self.can_manage_occurrence:
             await self._load_options("responsaveis_ocorrencia")
 
+    async def _refresh(self):
+        """Recarrega a base (lista completa, quando cabe) e mostra a aba atual."""
+        try:
+            self._all = await self._load_complete("maintenance", "ocorrencias", {"equipamento_id": to_int(self.equipamento_id)})
+        except api.ApiError:
+            self._all = None
+        await self._fetch()
+
+    def _local_rows(self) -> list[dict]:
+        """Filtra a aba atual na lista completa, com as mesmas regras da API (ordem: relatada_em decrescente)."""
+        if self.queue == "mine":
+            return [o for o in self._all if o.get("responsavel_id") == self.user_id and o.get("status") in ("open", "in_progress")]
+        if self.queue == "all":
+            return self._all
+        return [o for o in self._all if o.get("status") == self.queue]
+
     async def _fetch(self):
-        self.loading = True
         self.error = ""
+        if self._all is not None:
+            self.items, self.has_next = page_slice(self._local_rows(), self.page)
+            self.loading = False
+            return
+        self.loading = True
         params = {"equipamento_id": to_int(self.equipamento_id), "page": self.page, "per_page": 25}
         if self.queue == "mine":
             params |= {"minhas": True, "abertas": True}
         elif self.queue != "all":
             params["status"] = self.queue
         try:
-            result = await self.call("GET", "maintenance", "ocorrencias", params=params)
+            result = await self._cached_list("maintenance", "ocorrencias", params)
             self.items = result["items"]
             self.has_next = result.get("nextPage") is not None
         except api.ApiError as err:
@@ -71,20 +93,31 @@ class OccurrenceState(OptionsState):
         finally:
             self.loading = False
 
+    # Com a lista completa, trocar de aba/página não chama a API. Sem ela, os handlers devolvem o controle (yield)
+    # antes de buscar, para a aba/página mudar na tela na hora, com "Carregando…"
     @rx.event
     async def set_queue(self, value: str):
         self.queue = value
         self.page = 1
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
     async def next_page(self):
         self.page += 1
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
     async def prev_page(self):
         self.page = max(1, self.page - 1)
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     # Sem cache: uma var em cache sem dependências é calculada uma vez só e manteria um horário desatualizado
@@ -124,7 +157,7 @@ class OccurrenceState(OptionsState):
         self.report_open = False
         self.queue = "open"
         self.page = 1
-        await self._fetch()
+        await self._refresh()
         yield rx.toast.success("Ocorrência registrada.")
 
     @rx.event
@@ -173,7 +206,7 @@ class OccurrenceState(OptionsState):
         finally:
             self.saving = False
         self.action = ""
-        await self._fetch()
+        await self._refresh()
         yield rx.toast.success("Ocorrência atualizada.")
 
 

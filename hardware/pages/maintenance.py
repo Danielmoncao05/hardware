@@ -23,7 +23,7 @@ from ..components import (
     text_area,
     text_input,
 )
-from ..options import TZ, OptionsState, local_to_ms, now_local_input, opt_text, to_int
+from ..options import TZ, OptionsState, local_to_ms, now_local_input, opt_text, page_slice, to_int
 
 class CalItem(TypedDict):
     id: int
@@ -72,13 +72,15 @@ class MaintenanceState(OptionsState):
     # e o vínculo com a ocorrência são fixos e enviados automaticamente.
     ocorrencia: dict = {}
     responsavel_padrao: str = ""
+    # Todas as manutenções do filtro de equipamento, quando cabem em uma resposta da API (None = paginar pela API)
+    _all: list[dict] | None = None
 
     @rx.event
     async def on_load(self):
         redirect = await self._guard("operational.read")
         if redirect:
             return redirect
-        equipamento_id = self.router.page.params.get("equipamento_id", "") or ""
+        equipamento_id = self._query_param("equipamento_id")
         if equipamento_id != self.equipamento_id:
             # Entrar com filtro mostra todos os registros do equipamento; limpar o filtro volta à fila padrão
             self.view = "all" if equipamento_id else "upcoming"
@@ -91,12 +93,12 @@ class MaintenanceState(OptionsState):
         self.transition = ""
         self.ocorrencia = {}
         self.responsavel_padrao = ""
-        await self._fetch()
+        await self._refresh()
         if self.can_work_maintenance:
             await self._load_options("responsaveis_manutencao")
             self.equip_query = ""
             await self._search_equipment("", self.equipamento_id)
-            ocorrencia_id = to_int(self.router.page.params.get("ocorrencia_id"))
+            ocorrencia_id = to_int(self._query_param("ocorrencia_id"))
             if ocorrencia_id:
                 await self._open_corrective(ocorrencia_id)
 
@@ -128,9 +130,39 @@ class MaintenanceState(OptionsState):
     def from_occurrence(self) -> bool:
         return bool(self.ocorrencia)
 
+    async def _refresh(self):
+        """Recarrega a base (lista completa, quando cabe) e mostra a aba ou o mês atual."""
+        try:
+            self._all = await self._load_complete("maintenance", "manutencoes", {"equipamento_id": to_int(self.equipamento_id)})
+        except api.ApiError:
+            self._all = None
+        await self._fetch()
+
+    def _local_rows(self) -> list[dict]:
+        """Filtra a aba atual na lista completa, com as mesmas regras da API (ordem: data_planejada crescente).
+        Próximas/atrasadas: só preventivas planejadas, comparando com a data de hoje em UTC, como a API."""
+        today = dt.datetime.now(dt.timezone.utc).date().isoformat()
+        due = [m for m in self._all if m.get("tipo") == "preventive" and m.get("status") == "planned"]
+        if self.view == "upcoming":
+            return [m for m in due if (m.get("data_planejada") or "") >= today]
+        if self.view == "overdue":
+            return [m for m in due if (m.get("data_planejada") or "") < today]
+        if self.view == "mine":
+            return [m for m in self._all if m.get("responsavel_id") == self.user_id]
+        return self._all
+
     async def _fetch(self):
-        self.loading = True
         self.error = ""
+        if self._all is not None:
+            if self.mode == "calendar":
+                first = dt.date(self.cal_year, self.cal_month, 1).isoformat()
+                last = dt.date(self.cal_year, self.cal_month, calendar.monthrange(self.cal_year, self.cal_month)[1]).isoformat()
+                self.cal_items = [m for m in self._all if first <= (m.get("data_planejada") or "") <= last]
+            else:
+                self.items, self.has_next = page_slice(self._local_rows(), self.page)
+            self.loading = False
+            return
+        self.loading = True
         try:
             if self.mode == "calendar":
                 first = dt.date(self.cal_year, self.cal_month, 1)
@@ -143,11 +175,10 @@ class MaintenanceState(OptionsState):
                     page_size=100,
                 )
             else:
-                result = await self.call(
-                    "GET",
+                result = await self._cached_list(
                     "maintenance",
                     "manutencoes",
-                    params=VIEWS[self.view] | {"equipamento_id": to_int(self.equipamento_id), "page": self.page, "per_page": 25},
+                    VIEWS[self.view] | {"equipamento_id": to_int(self.equipamento_id), "page": self.page, "per_page": 25},
                 )
                 self.items = result["items"]
                 self.has_next = result.get("nextPage") is not None
@@ -156,15 +187,23 @@ class MaintenanceState(OptionsState):
         finally:
             self.loading = False
 
+    # Com a lista completa, trocar de aba/mês/página não chama a API. Sem ela, os handlers devolvem o controle
+    # (yield) antes de buscar, para a mudança aparecer na tela na hora, com "Carregando…"
     @rx.event
     async def set_view(self, value: str):
         self.view = value
         self.page = 1
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
     async def set_mode(self, value: str | list[str]):
         self.mode = value if isinstance(value, str) else (value[0] if value else "list")
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
@@ -172,16 +211,25 @@ class MaintenanceState(OptionsState):
         month = self.cal_month + delta
         self.cal_year += (month - 1) // 12
         self.cal_month = (month - 1) % 12 + 1
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
     async def next_page(self):
         self.page += 1
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.event
     async def prev_page(self):
         self.page = max(1, self.page - 1)
+        if self._all is None:
+            self.loading = True
+            yield
         await self._fetch()
 
     @rx.var
@@ -261,7 +309,7 @@ class MaintenanceState(OptionsState):
         self.create_open = False
         self.ocorrencia = {}
         self.responsavel_padrao = ""
-        await self._fetch()
+        await self._refresh()
         yield rx.toast.success("Manutenção corretiva registrada e vinculada à ocorrência." if linked else "Manutenção registrada.")
 
     # ---- transições ----
@@ -313,7 +361,7 @@ class MaintenanceState(OptionsState):
         finally:
             self.saving = False
         self.transition = ""
-        await self._fetch()
+        await self._refresh()
         messages = {"iniciar": "Manutenção iniciada.", "concluir": "Manutenção concluída.", "cancelar": "Manutenção cancelada."}
         yield rx.toast.success(messages[action])
         if action == "concluir" and result and result.get("proxima_data_sugerida"):

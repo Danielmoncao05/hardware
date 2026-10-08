@@ -53,11 +53,10 @@ class EquipmentListState(OptionsState):
         self.error = ""
         f = self.filters
         try:
-            result = await self.call(
-                "GET",
+            result = await self._cached_list(
                 "inventory",
                 "equipamentos",
-                params={
+                {
                     "q": f.get("q"),
                     "categoria_id": to_int(f.get("categoria_id")),
                     "fabricante_id": to_int(f.get("fabricante_id")),
@@ -77,20 +76,27 @@ class EquipmentListState(OptionsState):
         finally:
             self.loading = False
 
+    # Os handlers abaixo devolvem o controle (yield) antes de buscar, para a tela reagir na hora
     @rx.event
     async def apply_filters(self, form: dict):
         self.filters = {k: str(v) for k, v in form.items()}
         self.page = 1
+        self.loading = True
+        yield
         await self._fetch()
 
     @rx.event
     async def next_page(self):
         self.page += 1
+        self.loading = True
+        yield
         await self._fetch()
 
     @rx.event
     async def prev_page(self):
         self.page = max(1, self.page - 1)
+        self.loading = True
+        yield
         await self._fetch()
 
 
@@ -189,7 +195,7 @@ class EquipmentFormState(OptionsState):
             return redirect
         self.error = ""
         await self._load_options("localizacoes", "modelos")
-        self.equipment_id = to_int(self.router.page.params.get("id")) or 0
+        self.equipment_id = self._path_id() or 0
         self.current = {}
         if self.equipment_id:
             try:
@@ -384,7 +390,7 @@ class EquipmentDetailState(OptionsState):
         redirect = await self._guard("operational.read")
         if redirect:
             return redirect
-        self.equipment_id = to_int(self.router.page.params.get("id")) or 0
+        self.equipment_id = self._path_id() or 0
         self.move_open = self.status_open = self.component_open = False
         await self._fetch()
         if self.can_manage_inventory:
