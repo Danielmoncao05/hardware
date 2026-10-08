@@ -6,6 +6,7 @@ e a ordem dos campos no DOM é a ordem de foco do teclado.
 
 import reflex as rx
 
+from .alerts import alert_watcher
 from .options import TZ_NAME
 from .state import AuthState
 
@@ -303,6 +304,7 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
             width="100%",
             min_width="0",
         ),
+        alert_watcher(),
         spacing="0",
         align="start",
         width="100%",

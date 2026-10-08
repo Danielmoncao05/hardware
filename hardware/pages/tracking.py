@@ -5,9 +5,9 @@ import time
 import reflex as rx
 
 from .. import api
+from ..alerts import HEALTH, HEALTH_COLOR, health_badge, reasons
 from ..components import (
     EQUIP_STATUS,
-    SEVERITY,
     badge,
     date_text,
     empty_row,
@@ -22,24 +22,7 @@ from ..components import (
 )
 from ..options import OptionsState, ms_to_local, to_int
 
-HEALTH = {"critico": "Crítico", "atencao": "Atenção", "ok": "OK"}
-HEALTH_COLOR = {"critico": "red", "atencao": "amber", "ok": "green"}
 PAGE_SIZE = 25
-
-
-def reasons(row: dict) -> str:
-    """Por que o equipamento não está OK, em texto curto (mesmas regras do endpoint)."""
-    out = []
-    if row.get("status") in ("out_of_service", "under_maintenance"):
-        out.append(EQUIP_STATUS[row["status"]])
-    abertas = row.get("ocorrencias_abertas") or 0
-    if abertas:
-        sev = SEVERITY.get(row.get("maior_severidade") or "", "")
-        out.append(f"{abertas} ocorrência(s) aberta(s)" + (f", maior severidade {sev.lower()}" if sev else ""))
-    atrasadas = row.get("preventivas_atrasadas") or 0
-    if atrasadas:
-        out.append(f"{atrasadas} preventiva(s) atrasada(s)")
-    return "; ".join(out)
 
 
 class TrackingState(OptionsState):
@@ -132,14 +115,6 @@ class TrackingState(OptionsState):
     @rx.var
     def total_geral(self) -> int:
         return sum(self.resumo.get(k, 0) for k in HEALTH)
-
-
-def health_badge(value) -> rx.Component:
-    return rx.badge(
-        rx.match(value, *[(k, v) for k, v in HEALTH.items()], value),
-        color_scheme=rx.match(value, *[(k, c) for k, c in HEALTH_COLOR.items()], "gray"),
-        variant="solid",
-    )
 
 
 def health_tile(key: str) -> rx.Component:

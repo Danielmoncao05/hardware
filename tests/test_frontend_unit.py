@@ -407,3 +407,20 @@ def test_tracking_reasons(row, expected):
     from hardware.pages.tracking import reasons
 
     assert reasons(row) == expected
+
+
+# ------------------------------------------------------------------ avisos: só o que é novo ou piorou
+def test_alerts_only_new_or_changed_and_critical_first():
+    from hardware.alerts import new_alerts, signature
+
+    a = {"id": 1, "nome": "B", "saude": "atencao", "status": "operational", "preventivas_atrasadas": 1}
+    b = {"id": 2, "nome": "A", "saude": "atencao", "status": "under_maintenance"}
+    c = {"id": 3, "nome": "C", "saude": "critico", "status": "out_of_service"}
+    # Primeira consulta: tudo é novo, críticos primeiro e depois por nome
+    assert [r["id"] for r in new_alerts([a, b, c], {})] == [3, 2, 1]
+    seen = {str(r["id"]): signature(r) for r in (a, b, c)}
+    # Nada mudou: nenhum aviso
+    assert new_alerts([a, b, c], seen) == []
+    # Piorou (ocorrência crítica aberta): avisa de novo
+    a2 = a | {"saude": "critico", "ocorrencias_abertas": 1, "maior_severidade": "critical"}
+    assert [r["id"] for r in new_alerts([a2, b, c], seen)] == [1]
