@@ -1,4 +1,5 @@
-// Signup and retrieve an authentication token
+// Public signup is disabled: accounts are provisioned by administrators (POST users in the Users group).
+// The endpoint is kept, rather than deleted, so existing clients get an explicit refusal.
 query "auth/signup" verb=POST {
   api_group = "Authentication"
 
@@ -9,44 +10,13 @@ query "auth/signup" verb=POST {
   }
 
   stack {
-    // Check if a user record with that email exists
-    db.get user {
-      field_name = "email"
-      field_value = $input.email
-    } as $user
-  
-    // Verify that the email being used to sign up is unique
-    precondition ($user == null) {
-      error_type = "accessdenied"
-      error = "An account with this email already exists."
+    throw {
+      name = "accessdenied"
+      value = "Public signup is disabled. Ask an administrator to create your account."
     }
-  
-    // Create a new user record
-    db.add user {
-      data = {
-        created_at: "now"
-        name      : $input.name
-        email     : $input.email
-        password  : $input.password
-        role      : "member"
-      }
-    } as $user
-  
-    // Create an authentiction token
-    security.create_auth_token {
-      table = "user"
-      extras = {}
-      expiration = 86400
-      id = $user.id
-    } as $authToken
-  
-    // Create an event log for signup
-    function.run "Quick Start/log_event" {
-      input = {user_id: $user.id, action: "signup", metadata: $user}
-    } as $event_log
   }
 
-  response = {authToken: $authToken, user_id: $user.id}
+  response = null
   tags = ["xano:quick-start"]
-  guid = "SaNwL_f5aAH-YVb3oof0QF6FchE"
+  guid = "ReqhttMODNVPrvgWYsj-u74vAqs"
 }

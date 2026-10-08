@@ -25,5 +25,5 @@ function "Quick Start/log_event" {
 
   response = null
   tags = ["xano:quick-start"]
-  guid = "USRxtOTWlMzDAps6Vb75LjXABKQ"
+  guid = "2TbgVrSk4dm4J7ehQwaI2SPVPbA"
 }

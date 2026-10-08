@@ -1,6 +1,8 @@
-// Use this endpoint to send a welcome email to a user
+// Sends a welcome email to a provisioned user. Administrator-only (users.manage): it was public in the
+// quick start, which let anyone trigger emails.
 query "message/send_welcome_email" verb=POST {
   api_group = "Authentication"
+  auth = "user"
 
   input {
     // The ID of the user to send the welcome email to.
@@ -8,6 +10,10 @@ query "message/send_welcome_email" verb=POST {
   }
 
   stack {
+    function.run "hhm/require_permission" {
+      input = {user_id: $auth.id, permission: "users.manage"}
+    }
+
     // Retrieve the user record for the given user ID.
     db.get user {
       field_name = "id"
@@ -20,21 +26,22 @@ query "message/send_welcome_email" verb=POST {
       error = "User not found."
     }
   
-    // Set the subject line for the welcome email.
+    // Subject and body (the name is HTML-escaped: it is user-entered text)
     var $email_subject {
-      value = "Welcome to Our Service, " ~ $user_record.name ~ "!"
+      value = "Bem-vindo(a) ao sistema de gestão de equipamentos"
     }
   
-    // Construct the HTML body of the welcome email.
     var $email_body {
-      value = "<html><body><h1>Welcome, " ~ $user_record.name ~ "!</h1><p>Thank you for joining our service. We're excited to have you!</p><p>Best regards,<br>The Team</p></body></html>"
+      value = "<html><body><h1>Olá, " ~ ($user_record.name|escape) ~ "!</h1><p>Sua conta no sistema de gestão de equipamentos foi criada por um administrador. Você receberá uma senha temporária por um canal seguro. No primeiro acesso, o sistema pedirá que você a troque por uma senha pessoal antes de continuar.</p></body></html>"
     }
   
-    // Send welcome email
-    util.send_email {
-      service_provider = "xano"
-      subject = $email_subject
-      message = $email_body
+    // Send welcome email through the configured email service
+    function.run "hhm/send_email" {
+      input = {
+        to     : $user_record.email
+        subject: $email_subject
+        html   : $email_body
+      }
     } as $send_email
   
     // Log welcome email sent for user
@@ -49,5 +56,5 @@ query "message/send_welcome_email" verb=POST {
 
   response = $send_email
   tags = ["xano:quick-start"]
-  guid = "jYbiajP6XoKv8VwJfc9TCj3ryuQ"
+  guid = "T8I4x4ej-XGZ0xNLsVwUz0htoL4"
 }

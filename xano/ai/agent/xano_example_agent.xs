@@ -2,7 +2,7 @@
 // 
 //  It comes with a Tool connected to the Xano Documentation, which has context to the Xano Docs. To test the Baseline Agent, open the Demo API in the Authentication API Group.
 agent "Xano Example Agent" {
-  canonical = "W5GFHuML"
+  canonical = "LhN8JXne"
   tags = ["xano:quick-start"]
   llm = {
     type            : "xano-free"
@@ -41,5 +41,5 @@ agent "Xano Example Agent" {
   }
 
   tools = [{name: "search_xano_docs"}]
-  guid = "4eDMDoewHLOVwkeSNsvAmHF7ta0"
+  guid = "mlVbb5whmYM2jiVkgMO4vo-cSNU"
 }

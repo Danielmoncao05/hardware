@@ -1,4 +1,4 @@
-workspace "Fellipe's Workspace" {
+workspace "Matheus's Workspace" {
   acceptance = {ai_terms: true}
   preferences = {
     internal_docs    : false

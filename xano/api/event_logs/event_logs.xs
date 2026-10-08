@@ -1,6 +1,6 @@
 // Contains API Endpoints for reports of event logs
 api_group "Event Logs" {
-  canonical = "ZoLUUirM"
+  canonical = "iFZg5SqT"
   tags = ["xano:quick-start"]
-  guid = "nCciGH5-zYqOjkbUyTbaa1EO5_8"
+  guid = "s7sPbnr5weTIVC1n1ExMaiopuTo"
 }

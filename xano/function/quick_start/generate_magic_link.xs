@@ -15,13 +15,17 @@ function "Quick Start/generate_magic_link" {
       where = $db.user.email == $input.email
       return = {type: "single"}
     } as $user
-  
-    // Verifies that the user record exists
-    precondition ($user != null) {
-      error_type = "notfound"
-      error = "No user found for that email."
+
+    // Unknown or disabled accounts get no link. Return null instead of an error so the
+    // caller can answer identically either way and not reveal which emails exist.
+    conditional {
+      if ($user == null || $user.ativo != true) {
+        return {
+          value = null
+        }
+      }
     }
-  
+
     // Creates a unique UUID as token
     security.create_uuid as $token
   
@@ -45,5 +49,5 @@ function "Quick Start/generate_magic_link" {
 
   response = {token: $token, email: $updated_password_reset.email}
   tags = ["xano:quick-start"]
-  guid = "z-e-dOC9n5rDVxrvE8LWbGgFRWw"
+  guid = "BnNILjOuTlyiGrvOpF3UnK_7Bvg"
 }

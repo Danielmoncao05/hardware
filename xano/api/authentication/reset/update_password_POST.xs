@@ -1,51 +1,24 @@
-// Allows user to update the password in the password reset flow
+// Disabled. It set a new password for any signed-in session without asking for the current one, so a
+// stolen session could take over the account. Use auth/change_password (requires the current password)
+// when signed in, or reset/confirm with the emailed link when the password is forgotten.
+// The endpoint is kept (rather than deleted) so old clients get an explicit refusal.
 query "reset/update_password" verb=POST {
   api_group = "Authentication"
   auth = "user"
 
   input {
-    text password? filters=trim|min:8
+    text password? filters=trim
     text confirm_password? filters=trim
   }
 
   stack {
-    // Check that the password inputs are matching
-    precondition ($input.password == $input.confirm_password) {
-      error = "Passwords do not match!"
+    throw {
+      name = "accessdenied"
+      value = "This endpoint is no longer available. Use auth/change_password or reset/confirm."
     }
-  
-    // Get user record based on the id of the auth token
-    db.get user {
-      field_name = "id"
-      field_value = $auth.id
-    } as $user
-  
-    // Check that the user record id matches the auth id
-    precondition ($user.id == $auth.id) {
-      error_type = "accessdenied"
-    }
-  
-    // Update user record with the new password
-    db.edit user {
-      field_name = "id"
-      field_value = $auth.id
-      data = {password: $input.password}
-    } as $user
-  
-    // Create event log
-    function.run "Quick Start/log_event" {
-      input = {
-        user_id : $user.id
-        action  : "reset_password"
-        metadata: $user
-      }
-    } as $event_log
   }
 
-  response = {
-    message: {"success":"true","message":"Password updated"}
-  }
-
+  response = null
   tags = ["xano:quick-start"]
-  guid = "ar_H2f54oh3uB3QEYbYtTfhapAM"
+  guid = "mDh0W9G081ieSpgLISiQBNE_tGY"
 }

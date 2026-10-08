@@ -4,3 +4,6 @@ __pycache__/
 .web
 *.py[cod]
 assets/external/
+.venv/
+node_modules/
+reflex.log
