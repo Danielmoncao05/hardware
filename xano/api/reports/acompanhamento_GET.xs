@@ -193,7 +193,59 @@ query acompanhamento verb=GET {
       value = $faixas|get:($input.saude ?? "todos")
     }
 
-    // Página pedida, em ordem de nome
+    // Página pedida, em ordem de nome. O Xano às vezes ignora o bloco paging e devolve a lista inteira, então a
+    // paginação é feita aqui: primeiro os ids de todos os equipamentos encontrados (só o id), depois os dados
+    // completos apenas dos ids da página.
+    db.query equipamentos {
+      join = {
+        modelos: {
+          table: "modelos"
+          where: $db.equipamentos.modelo_id == $db.modelos.id
+        }
+      }
+
+      where = ($db.equipamentos.nome ilike $pattern || $db.equipamentos.numero_patrimonio ilike $pattern || $db.equipamentos.numero_serie ilike $pattern) && $db.modelos.categoria_id ==? $input.categoria_id && $db.equipamentos.localizacao_id ==? $input.localizacao_id && $db.equipamentos.status ==? $input.status && $db.equipamentos.status in $filtro.status_in && $db.equipamentos.id not in $filtro.excluir && ($db.equipamentos.status in $filtro.status_ou || $db.equipamentos.id in $filtro.ids_ou)
+      sort = {nome: "asc"}
+      output = ["id"]
+      return = {type: "list"}
+    } as $encontrados
+
+    var $total {
+      value = $encontrados|count
+    }
+
+    var $inicio {
+      value = ($input.page - 1) * $input.per_page
+    }
+
+    var $fim {
+      value = $inicio + $input.per_page
+    }
+
+    var $pagina_ids {
+      value = [0]
+    }
+
+    var $i {
+      value = 0
+    }
+
+    foreach ($encontrados) {
+      each as $row {
+        conditional {
+          if ($i >= $inicio && $i < $fim) {
+            var.update $pagina_ids {
+              value = $pagina_ids|push:$row.id
+            }
+          }
+        }
+
+        math.add $i {
+          value = 1
+        }
+      }
+    }
+
     db.query equipamentos {
       join = {
         modelos: {
@@ -210,7 +262,7 @@ query acompanhamento verb=GET {
         }
       }
 
-      where = ($db.equipamentos.nome ilike $pattern || $db.equipamentos.numero_patrimonio ilike $pattern || $db.equipamentos.numero_serie ilike $pattern) && $db.modelos.categoria_id ==? $input.categoria_id && $db.equipamentos.localizacao_id ==? $input.localizacao_id && $db.equipamentos.status ==? $input.status && $db.equipamentos.status in $filtro.status_in && $db.equipamentos.id not in $filtro.excluir && ($db.equipamentos.status in $filtro.status_ou || $db.equipamentos.id in $filtro.ids_ou)
+      where = $db.equipamentos.id in $pagina_ids
       sort = {nome: "asc"}
       output = ["id", "nome", "numero_patrimonio", "status"]
       eval = {
@@ -219,17 +271,14 @@ query acompanhamento verb=GET {
         localizacao: $db.localizacoes.nome
       }
 
-      return = {
-        type  : "list"
-        paging: {page: $input.page, per_page: $input.per_page, totals: true}
-      }
+      return = {type: "list"}
     } as $pagina
 
     var $linhas {
       value = []
     }
 
-    foreach ($pagina.items) {
+    foreach ($pagina) {
       each as $eq {
         var $k {
           value = $eq.id|to_text
@@ -269,9 +318,9 @@ query acompanhamento verb=GET {
   response = {
     resumo      : $resumo
     items       : $linhas
-    itemsTotal  : $pagina.itemsTotal
-    nextPage    : $pagina.nextPage
-    curPage     : $pagina.curPage
+    itemsTotal  : $total
+    nextPage    : $fim < $total ? $input.page + 1 : null
+    curPage     : $input.page
   }
   guid = "pTWvg6bfykD8OB9csEv6zBzaTJY"
 }
