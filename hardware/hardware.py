@@ -21,6 +21,7 @@ from .pages.maintenance import MaintenanceState, maintenance_page
 from .pages.no_access import no_access_page
 from .pages.occurrences import OccurrenceState, occurrences_page
 from .pages.reports import ReportsState, reports_page
+from .pages.tracking import TrackingState, tracking_page
 from .pages.users import UsersState, users_page
 from .state import AuthState
 
@@ -33,6 +34,7 @@ app.add_page(reset_page, route="/reset-password", title="Definir nova senha")
 
 # Autenticadas: cada on_load verifica de novo a sessão e a permissão da página
 app.add_page(dashboard_page, route="/", title="Painel", on_load=DashboardState.on_load)
+app.add_page(tracking_page, route="/acompanhamento", title="Acompanhamento", on_load=TrackingState.on_load)
 app.add_page(equipment_detail_page, route="/equipamentos/[id]", title="Equipamento", on_load=EquipmentDetailState.on_load)
 app.add_page(equipment_form_page, route="/equipamentos/[id]/editar", title="Editar equipamento", on_load=EquipmentFormState.on_load)
 app.add_page(equipment_list_page, route="/equipamentos", title="Equipamentos", on_load=EquipmentListState.on_load)

@@ -271,6 +271,7 @@ def test_every_nav_link_is_gated_by_its_page_permission():
     flag_perm = dict(re.findall(r"def (can_\w+)\(self\) -> bool:\s+return \"([\w.]+)\" in self\.permissions", state))
     pages = {
         "/": "dashboard.py",
+        "/acompanhamento": "tracking.py",
         "/equipamentos": "equipment.py",
         "/manutencoes": "maintenance.py",
         "/ocorrencias": "occurrences.py",
@@ -388,3 +389,21 @@ def test_calendar_dates_are_never_timezone_converted():
     equipment = (ROOT / "hardware" / "pages" / "equipment.py").read_text(encoding="utf-8")
     assert 'date_text(e["data_aquisicao"])' in equipment and 'date_text(e["proxima_manutencao"])' in equipment
     assert 'rx.cond(ev["somente_data"], date_text(ev["data_planejada"])' in equipment
+
+
+# ------------------------------------------------------------------ acompanhamento: motivos da saúde
+@pytest.mark.parametrize(
+    "row,expected",
+    [
+        ({"status": "operational", "ocorrencias_abertas": 0, "preventivas_atrasadas": 0}, ""),
+        ({"status": "out_of_service"}, "Fora de serviço"),
+        (
+            {"status": "under_maintenance", "ocorrencias_abertas": 2, "maior_severidade": "high", "preventivas_atrasadas": 1},
+            "Em manutenção; 2 ocorrência(s) aberta(s), maior severidade alta; 1 preventiva(s) atrasada(s)",
+        ),
+    ],
+)
+def test_tracking_reasons(row, expected):
+    from hardware.pages.tracking import reasons
+
+    assert reasons(row) == expected

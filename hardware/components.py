@@ -203,6 +203,7 @@ def submit_button(text: str, loading=False, **props) -> rx.Component:
 # (texto, rota, ícone, flag do AuthState exigida para mostrar o link: a mesma permissão que o guard da página verifica)
 NAV = [
     ("Painel", "/", "layout_dashboard", "can_read_reports"),
+    ("Acompanhamento", "/acompanhamento", "activity", "can_read_reports"),
     ("Equipamentos", "/equipamentos", "monitor", "can_read_operational"),
     ("Manutenções", "/manutencoes", "wrench", "can_read_operational"),
     ("Ocorrências", "/ocorrencias", "circle_alert", "can_read_operational"),
