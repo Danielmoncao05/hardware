@@ -22,11 +22,36 @@ function "hhm/maintenance_dates" {
       sort = {data_planejada: "asc"}
       return = {type: "single"}
     } as $proxima
+
+    // Sem registro a consulta devolve null, e ler um campo de null é erro no Xano: só lê quando existe
+    var $ultima_manutencao {
+      value = null
+    }
+
+    var $proxima_manutencao {
+      value = null
+    }
+
+    conditional {
+      if ($ultima != null) {
+        var.update $ultima_manutencao {
+          value = $ultima.concluida_em
+        }
+      }
+    }
+
+    conditional {
+      if ($proxima != null) {
+        var.update $proxima_manutencao {
+          value = $proxima.data_planejada
+        }
+      }
+    }
   }
 
   response = {
-    ultima_manutencao: $ultima.concluida_em
-    proxima_manutencao: $proxima.data_planejada
+    ultima_manutencao: $ultima_manutencao
+    proxima_manutencao: $proxima_manutencao
   }
   guid = "lhU7ZlVecEo6of-F9FxLAKAimpQ"
 }
