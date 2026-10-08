@@ -1,6 +1,6 @@
-// Updates an open or in-progress occurrence: description and severity (manager or assigned
-// technician), and assignment of the responsible user (occurrence.manage only).
-// Send responsavel_id = 0 to unassign. Resolved and canceled occurrences are history.
+// Atualiza uma ocorrência aberta ou em andamento: descrição e severidade (gestor ou técnico
+// atribuído) e atribuição do responsável (somente occurrence.manage).
+// Envie responsavel_id = 0 para remover a atribuição. Ocorrências resolvidas e canceladas são histórico.
 query "ocorrencias/{ocorrencia_id}" verb=PATCH {
   api_group = "Maintenance"
   auth = "user"

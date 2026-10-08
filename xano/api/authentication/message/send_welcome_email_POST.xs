@@ -1,11 +1,11 @@
-// Sends a welcome email to a provisioned user. Administrator-only (users.manage): it was public in the
-// quick start, which let anyone trigger emails.
+// Envia um e-mail de boas-vindas a um usuário criado. Exclusivo de administradores (users.manage): no
+// quick start ele era público, o que deixava qualquer pessoa disparar e-mails.
 query "message/send_welcome_email" verb=POST {
   api_group = "Authentication"
   auth = "user"
 
   input {
-    // The ID of the user to send the welcome email to.
+    // ID do usuário que vai receber o e-mail de boas-vindas.
     int user_id
   }
 
@@ -14,19 +14,19 @@ query "message/send_welcome_email" verb=POST {
       input = {user_id: $auth.id, permission: "users.manage"}
     }
 
-    // Retrieve the user record for the given user ID.
+    // Busca o registro do usuário com o ID informado.
     db.get user {
       field_name = "id"
       field_value = $input.user_id
     } as $user_record
   
-    // Ensure the user record exists before proceeding.
+    // Garante que o registro do usuário existe antes de continuar.
     precondition ($user_record != null) {
       error_type = "notfound"
       error = "User not found."
     }
   
-    // Subject and body (the name is HTML-escaped: it is user-entered text)
+    // Assunto e corpo (o nome é escapado para HTML: é texto digitado pelo usuário)
     var $email_subject {
       value = "Bem-vindo(a) ao sistema de gestão de equipamentos"
     }
@@ -35,7 +35,7 @@ query "message/send_welcome_email" verb=POST {
       value = "<html><body><h1>Olá, " ~ ($user_record.name|escape) ~ "!</h1><p>Sua conta no sistema de gestão de equipamentos foi criada por um administrador. Você receberá uma senha temporária por um canal seguro. No primeiro acesso, o sistema pedirá que você a troque por uma senha pessoal antes de continuar.</p></body></html>"
     }
   
-    // Send welcome email through the configured email service
+    // Envia o e-mail de boas-vindas pelo serviço de e-mail configurado
     function.run "hhm/send_email" {
       input = {
         to     : $user_record.email
@@ -44,7 +44,7 @@ query "message/send_welcome_email" verb=POST {
       }
     } as $send_email
   
-    // Log welcome email sent for user
+    // Registra o envio do e-mail de boas-vindas para o usuário
     function.run "Quick Start/log_event" {
       input = {
         user_id : $input.user_id

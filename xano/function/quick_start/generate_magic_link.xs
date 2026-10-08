@@ -1,23 +1,23 @@
-// This function generates a magic token with a 60 minute expiration date.
+// Esta função gera um token mágico que expira em 60 minutos.
 function "Quick Start/generate_magic_link" {
   input {
     email email?
   }
 
   stack {
-    // Checks that the email input is not empty
+    // Verifica se o e-mail informado não está vazio
     precondition ($input.email != null) {
       error = "email is required but was not suppiled. "
     }
   
-    // Gets the user record by email
+    // Busca o registro do usuário pelo e-mail
     db.query user {
       where = $db.user.email == $input.email
       return = {type: "single"}
     } as $user
 
-    // Unknown or disabled accounts get no link. Return null instead of an error so the
-    // caller can answer identically either way and not reveal which emails exist.
+    // Contas desconhecidas ou desabilitadas não recebem link. Devolve null em vez de erro para o
+    // chamador poder responder igual nos dois casos, sem revelar quais e-mails existem.
     conditional {
       if ($user == null || $user.ativo != true) {
         return {
@@ -26,10 +26,10 @@ function "Quick Start/generate_magic_link" {
       }
     }
 
-    // Creates a unique UUID as token
+    // Cria um UUID único como token
     security.create_uuid as $token
   
-    // Builds the password reset object
+    // Monta o objeto de redefinição de senha
     var $password_reset {
       value = {}
         |set:"token":$token
@@ -39,7 +39,7 @@ function "Quick Start/generate_magic_link" {
         |set:"used":false
     }
   
-    // Updates the user record with the password reset object
+    // Atualiza o registro do usuário com o objeto de redefinição de senha
     db.edit user {
       field_name = "id"
       field_value = $user|get:"id":0

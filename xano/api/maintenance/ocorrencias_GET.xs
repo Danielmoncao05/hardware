@@ -1,5 +1,5 @@
-// Occurrence queues (operational.read): filter by status, severity, equipment, location, responsible,
-// and reported-date range. abertas = true lists open and in-progress occurrences only.
+// Filas de ocorrências (operational.read): filtro por status, severidade, equipamento, localização, responsável
+// e período do relato. abertas = true lista só as ocorrências abertas e em andamento.
 query ocorrencias verb=GET {
   api_group = "Maintenance"
   auth = "user"
@@ -41,7 +41,7 @@ query ocorrencias verb=GET {
       }
     }
 
-    // abertas excludes the two closed states
+    // abertas exclui os dois estados encerrados
     var $excluir_1 {
       value = null
     }

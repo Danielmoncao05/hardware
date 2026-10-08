@@ -1,7 +1,7 @@
-"""Shared layout and form building blocks.
+"""Blocos compartilhados de layout e formulário.
 
-Every form control is paired with a visible <label for=...> so screen readers announce it,
-and the DOM order of fields is the keyboard focus order.
+Todo controle de formulário tem um <label for=...> visível para que leitores de tela o anunciem,
+e a ordem dos campos no DOM é a ordem de foco do teclado.
 """
 
 import reflex as rx
@@ -9,7 +9,7 @@ import reflex as rx
 from .options import TZ_NAME
 from .state import AuthState
 
-# ---- value labels (API values stay in English; the UI shows Portuguese) ----
+# ---- rótulos dos valores (os valores da API ficam em inglês; a interface mostra português) ----
 EQUIP_STATUS = {
     "operational": "Operacional",
     "under_maintenance": "Em manutenção",
@@ -53,18 +53,18 @@ STATUS_COLOR = {
 
 
 def label_of(mapping: dict[str, str], value) -> rx.Var:
-    """Translate an enum Var for display, falling back to the raw value."""
+    """Traduz uma Var de enum para exibição, usando o valor bruto quando não há tradução."""
     return rx.match(value, *[(k, v) for k, v in mapping.items()], value)
 
 
 def timestamp_text(value, fmt: str = "DD/MM/YYYY HH:mm") -> rx.Component:
-    """A stored timestamp shown in the institution's timezone (HHM_TIMEZONE): the same zone used to
-    interpret times typed into forms, so entry and display always agree whatever the browser's zone."""
+    """Data e hora armazenada, mostrada no fuso da instituição (HHM_TIMEZONE): o mesmo fuso usado para
+    interpretar horários digitados nos formulários, então entrada e exibição sempre coincidem, qualquer que seja o fuso do navegador."""
     return rx.cond(value, rx.moment(value, format=fmt, tz=TZ_NAME), rx.text("—"))
 
 
 def date_text(value) -> rx.Component:
-    """A calendar date ("YYYY-MM-DD"). Never timezone-converted: conversion could shift it by a day."""
+    """Data de calendário ("YYYY-MM-DD"). Nunca convertida de fuso: a conversão poderia mudar o dia."""
     return rx.cond(value, rx.moment(value, format="DD/MM/YYYY"), rx.text("—"))
 
 
@@ -76,7 +76,7 @@ def badge(mapping: dict[str, str], value) -> rx.Component:
     )
 
 
-# ---- forms ----
+# ---- formulários ----
 def field(label: str, control: rx.Component, field_id: str, hint: str = "", required: bool = False) -> rx.Component:
     marker = [rx.text.span(" *", color=rx.color("red", 10), aria_hidden="true")] if required else []
     hint_node = [rx.text(hint, size="1", color_scheme="gray", id=f"{field_id}-hint")] if hint else []
@@ -114,9 +114,9 @@ def text_area(label: str, name: str, required: bool = False, default_value="", h
 
 
 def native_select(label: str, name: str, options, required: bool = False, placeholder: str = "Selecione…", value=None, on_change=None, default_value=None, id_prefix: str = "f") -> rx.Component:
-    """Native <select>: fully keyboard-operable and announced by screen readers.
+    """<select> nativo: totalmente operável pelo teclado e anunciado por leitores de tela.
 
-    options: a Var or list of {"value": ..., "label": ...} dicts, or a list of (value, label) tuples.
+    options: uma Var ou lista de dicts {"value": ..., "label": ...}, ou uma lista de tuplas (value, label).
     """
     field_id = f"{id_prefix}-{name}"
     if isinstance(options, list) and options and isinstance(options[0], tuple):
@@ -148,10 +148,10 @@ def native_select(label: str, name: str, options, required: bool = False, placeh
 
 
 def equipment_picker(state, default_value="") -> rx.Component:
-    """Search box plus result list for choosing one equipment item (name, asset or serial number).
+    """Caixa de busca com lista de resultados para escolher um equipamento (nome, patrimônio ou número de série).
 
-    state: an OptionsState subclass (equip_query, equip_options, equip_searching, search_equipment).
-    The select keeps name="equipamento_id" for the surrounding form.
+    state: uma subclasse de OptionsState (equip_query, equip_options, equip_searching, search_equipment).
+    O select mantém name="equipamento_id" para o formulário em volta.
     """
     return rx.vstack(
         field(
@@ -176,7 +176,7 @@ def equipment_picker(state, default_value="") -> rx.Component:
 
 
 def error_callout(message) -> rx.Component:
-    """Visible, announced validation/API error."""
+    """Erro de validação/API visível e anunciado."""
     return rx.cond(
         message != "",
         rx.callout(message, icon="triangle_alert", color_scheme="red", role="alert", width="100%"),
@@ -185,9 +185,9 @@ def error_callout(message) -> rx.Component:
 
 
 def form_key_field(key) -> rx.Component:
-    """Hidden copy of the form's key. Events run one at a time, so a submit queued by a double click is
-    handled after the first one succeeded and bumped the key: the handler drops it (see stale_submit).
-    Place it inside a form keyed by the same var, so the field remounts with the new value."""
+    """Cópia oculta da chave do formulário. Os eventos rodam um de cada vez, então um envio enfileirado por clique duplo
+    é tratado depois que o primeiro deu certo e incrementou a chave: o handler o descarta (ver stale_submit).
+    Coloque dentro de um formulário com key na mesma var, para o campo ser remontado com o novo valor."""
     return rx.el.input(type="hidden", name="_form_key", default_value=key.to_string())
 
 
@@ -200,7 +200,7 @@ def submit_button(text: str, loading=False, **props) -> rx.Component:
 
 
 # ---- layout ----
-# (text, route, icon, AuthState flag required to show the link: same permission the page's guard checks)
+# (texto, rota, ícone, flag do AuthState exigida para mostrar o link: a mesma permissão que o guard da página verifica)
 NAV = [
     ("Painel", "/", "layout_dashboard", "can_read_reports"),
     ("Equipamentos", "/equipamentos", "monitor", "can_read_operational"),
@@ -235,7 +235,7 @@ def nav_items() -> list[rx.Component]:
 
 
 def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Component:
-    """Authenticated page shell: sidebar on desktop, collapsible menu on tablet/mobile."""
+    """Estrutura das páginas autenticadas: barra lateral no desktop, menu recolhível no tablet/celular."""
     sidebar = rx.vstack(
         rx.heading("Gestão de Equipamentos", size="4", padding="0.75rem"),
         rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),

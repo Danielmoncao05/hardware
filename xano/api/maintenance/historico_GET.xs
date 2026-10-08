@@ -1,7 +1,7 @@
-// Chronological equipment history (operational.read), oldest first, built from the source tables:
-// maintenance (all states, including completed and canceled), occurrences (all states), and component
-// installation/removal events. Also returns the derived last/next maintenance dates.
-// Works for decommissioned equipment; deactivated catalog entries and disabled users still resolve.
+// Histórico cronológico do equipamento (operational.read), mais antigos primeiro, montado a partir das tabelas de origem:
+// manutenções (todos os estados, inclusive concluídas e canceladas), ocorrências (todos os estados) e eventos de
+// instalação/remoção de componentes. Também devolve as datas derivadas da última/próxima manutenção.
+// Funciona para equipamentos descomissionados; itens de catálogo desativados e usuários desabilitados continuam aparecendo.
 query "equipamentos/{equipamento_id}/historico" verb=GET {
   api_group = "Maintenance"
   auth = "user"
@@ -75,8 +75,8 @@ query "equipamentos/{equipamento_id}/historico" verb=GET {
 
     foreach ($manutencoes) {
       each as $m {
-        // Date of the event: completion, else start, else the planned date (somente_data marks the last
-        // case: a calendar date, which clients must not timezone-convert)
+        // Data do evento: conclusão, senão início, senão a data planejada (somente_data marca o último
+        // caso: uma data de calendário, que os clientes não devem converter de fuso)
         var $data {
           value = $m.concluida_em ?? ($m.iniciada_em ?? ($m.data_planejada|to_timestamp))
         }

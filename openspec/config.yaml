@@ -1,5 +1,11 @@
 schema: spec-driven
 
+context: |
+  Idioma: escreva os artefatos (proposta, design, specs, tarefas) em português do Brasil.
+  Mantenha em inglês só os marcadores lidos pela ferramenta: "## ADDED Requirements",
+  "## MODIFIED Requirements", "### Requirement:" e "#### Scenario:".
+  Nos requisitos, use DEVE / NÃO DEVE / PODE; nos cenários, **QUANDO** / **ENTÃO**.
+
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.

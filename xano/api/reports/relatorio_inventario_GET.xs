@@ -1,6 +1,6 @@
-// Inventory / status / location report (reports.read). formato = "json" returns the paginated
-// on-screen page; formato = "csv" returns every matching row (up to 10,000) with the same filters.
-// Columns are equipment-management fields only.
+// Relatório de inventário / status / localização (reports.read). formato = "json" devolve a página
+// paginada da tela; formato = "csv" devolve todas as linhas encontradas (até 10.000) com os mesmos filtros.
+// As colunas são só campos de gestão de equipamentos.
 query "relatorios/inventario" verb=GET {
   api_group = "Reports"
   auth = "user"

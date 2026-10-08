@@ -1,7 +1,7 @@
-// Seeds the 12 equipment categories, the 4 roles, the permission keys, and the approved role grants.
-// Idempotent: rows are matched by their unique name/key and only missing rows are added, so it is safe
-// to re-run. Component types are an enum on componentes.tipo and need no rows.
-// Returns per-table counts plus any grant that differs from the approved matrix (missing or extra).
+// Cria as 12 categorias de equipamento, os 4 perfis, as chaves de permissão e as concessões aprovadas por perfil.
+// Idempotente: as linhas são localizadas pelo nome/chave únicos e só as que faltam são adicionadas, então é seguro
+// rodar de novo. Os tipos de componente são um enum em componentes.tipo e não precisam de linhas.
+// Devolve as contagens por tabela e qualquer concessão diferente da matriz aprovada (faltando ou sobrando).
 function "setup/seed_reference_data" {
   input {
   }
@@ -48,7 +48,7 @@ function "setup/seed_reference_data" {
       ]
     }
 
-    // Approved matrix (design.md, Authorization and privacy)
+    // Matriz aprovada (design.md, Autorização e privacidade)
     var $matrix {
       value = {
         administrator: ["operational.read", "inventory.manage", "maintenance.manage", "occurrence.report", "occurrence.manage", "reports.read", "audit.read", "users.manage"]
@@ -144,7 +144,7 @@ function "setup/seed_reference_data" {
       }
     }
 
-    // Verification: compare stored grants for the seeded roles against the matrix
+    // Verificação: compara as concessões gravadas dos perfis criados com a matriz
     var $divergencias {
       value = []
     }

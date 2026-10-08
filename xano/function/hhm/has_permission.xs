@@ -1,6 +1,6 @@
-// Returns true when the user is enabled, has no pending temporary-password change, has an active role,
-// and that role holds the permission key.
-// Every protected operation goes through this (via hhm/require_permission) instead of checking role names.
+// Devolve true quando o usuário está habilitado, não tem troca de senha temporária pendente, tem um perfil ativo
+// e esse perfil tem a chave de permissão.
+// Toda operação protegida passa por aqui (via hhm/require_permission) em vez de verificar nomes de perfil.
 function "hhm/has_permission" {
   input {
     int user_id

@@ -1,7 +1,7 @@
-"""Thin async client for the Xano API groups.
+"""Cliente assíncrono enxuto para os grupos de API do Xano.
 
-The frontend never touches persistence directly: every read and write goes through these
-endpoints, which enforce authentication, permissions, validation, and auditing.
+O frontend nunca acessa a persistência diretamente: toda leitura e escrita passa por estes
+endpoints, que aplicam autenticação, permissões, validação e auditoria.
 """
 
 import asyncio
@@ -12,7 +12,7 @@ import httpx
 
 XANO_BASE_URL = os.environ.get("XANO_BASE_URL", "https://x8ki-letl-twmt.n7.xano.io").rstrip("/")
 
-# API group canonicals (see xano/api/*/api_group.xs and authentication.xs)
+# Identificadores canônicos dos grupos de API (ver xano/api/*/api_group.xs e authentication.xs)
 GROUPS = {
     "auth": os.environ.get("XANO_AUTH_GROUP", "9o8FUxuc"),
     "users": os.environ.get("XANO_USERS_GROUP", "hhm149197-users"),
@@ -23,13 +23,13 @@ GROUPS = {
 
 TIMEOUT = httpx.Timeout(20.0)
 
-# HTTP 429 handling: retries and the longest wait between them (seconds)
+# Tratamento do HTTP 429: número de novas tentativas e a maior espera entre elas (segundos)
 RATE_LIMIT_RETRIES = 2
 RATE_LIMIT_MAX_WAIT = 8.0
 
 
 def _retry_delay(response: httpx.Response, attempt: int) -> float:
-    """Honor Retry-After when present, otherwise back off 2s, 4s, ...; capped so a page never hangs long."""
+    """Respeita o Retry-After quando existe; senão espera 2s, 4s, ...; com limite para a página nunca travar muito."""
     try:
         wait = float(response.headers.get("Retry-After", ""))
     except ValueError:
@@ -38,7 +38,7 @@ def _retry_delay(response: httpx.Response, attempt: int) -> float:
 
 
 class ApiError(Exception):
-    """An error response from the API, carrying a user-presentable message."""
+    """Resposta de erro da API, com uma mensagem que pode ser mostrada ao usuário."""
 
     def __init__(self, status: int, message: str):
         super().__init__(message)
@@ -55,7 +55,7 @@ def _url(group: str, path: str) -> str:
 
 
 def _clean(params: dict[str, Any] | None) -> dict[str, Any]:
-    """Drop empty values so optional API filters stay unset."""
+    """Remove valores vazios para que filtros opcionais da API fiquem sem valor."""
     if not params:
         return {}
     return {k: v for k, v in params.items() if v is not None and v != ""}
@@ -70,7 +70,7 @@ async def request(
     json: dict[str, Any] | None = None,
     raw: bool = False,
 ) -> Any:
-    """Call an endpoint and return its decoded JSON (or text when raw=True)."""
+    """Chama um endpoint e devolve o JSON decodificado (ou o texto quando raw=True)."""
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -80,12 +80,12 @@ async def request(
                     _url(group, path),
                     headers=headers,
                     params=_clean(params),
-                    # None means "not sent"; "" is kept because the API uses it to clear a field
+                    # None significa "não enviar"; "" é mantido porque a API usa isso para limpar um campo
                     json=None if json is None else {k: v for k, v in json.items() if v is not None},
                 )
                 if response.status_code != 429 or attempt == RATE_LIMIT_RETRIES:
                     break
-                # Rate limited (the plan allows a few requests per window): wait briefly and retry
+                # Limite de requisições (o plano permite poucas por janela): espera um pouco e tenta de novo
                 await asyncio.sleep(_retry_delay(response, attempt))
     except httpx.HTTPError:
         raise ApiError(0, "Não foi possível contatar o servidor. Tente novamente.") from None

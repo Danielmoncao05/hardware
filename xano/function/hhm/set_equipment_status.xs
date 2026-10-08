@@ -1,7 +1,7 @@
-// Applies an equipment status transition and audits previous/new status. Callers check permissions.
-// Used by the status endpoint and by maintenance transitions that put equipment under maintenance.
-// Opens no transaction of its own: every caller runs it inside its single db.transaction, so the status
-// change, its audit event, and the caller's own writes commit or roll back together.
+// Aplica uma transição de status do equipamento e audita o status anterior/novo. Quem chama verifica as permissões.
+// Usada pelo endpoint de status e pelas transições de manutenção que colocam o equipamento em manutenção.
+// Não abre transação própria: todo chamador a executa dentro do seu único db.transaction, então a troca de
+// status, o evento de auditoria e as gravações do próprio chamador são confirmados ou desfeitos juntos.
 function "hhm/set_equipment_status" {
   input {
     int equipamento_id

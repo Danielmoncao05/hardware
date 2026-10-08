@@ -1,4 +1,4 @@
-// Throws inputerror unless the location exists and is active (for new or moved equipment).
+// Lança inputerror se a localização não existir ou não estiver ativa (para equipamentos novos ou movidos).
 function "hhm/require_active_location" {
   input {
     int localizacao_id

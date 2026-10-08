@@ -1,5 +1,5 @@
-// Lists locations with their parent name (operational.read). Inactive ones are hidden unless
-// include_inactive is true; historical records still show them through their own joins.
+// Lista as localizações com o nome da localização superior (operational.read). As inativas ficam ocultas, a menos que
+// include_inactive seja true; os registros históricos continuam mostrando-as pelos próprios joins.
 query localizacoes verb=GET {
   api_group = "Inventory"
   auth = "user"
@@ -37,7 +37,7 @@ query localizacoes verb=GET {
       return = {type: "list"}
     } as $items
 
-    // Parent names are resolved from the same list plus a lookup for parents outside it
+    // Os nomes das superiores vêm da mesma lista, mais uma busca para as superiores que não estão nela
     var $result {
       value = []
     }

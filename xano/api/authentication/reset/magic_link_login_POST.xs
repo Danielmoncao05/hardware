@@ -1,6 +1,6 @@
-// Disabled. A reset link used to be exchanged here for a full login session, which could then call any
-// endpoint. Password resets are now completed in one step by reset/confirm, which never creates a session.
-// The endpoint is kept (rather than deleted) so old clients get an explicit refusal.
+// Desativado. Antes, um link de redefinição era trocado aqui por uma sessão de login completa, que podia chamar qualquer
+// endpoint. Agora a redefinição de senha é concluída em um passo por reset/confirm, que nunca cria sessão.
+// O endpoint é mantido (em vez de apagado) para que clientes antigos recebam uma recusa explícita.
 query "reset/magic-link-login" verb=POST {
   api_group = "Authentication"
 

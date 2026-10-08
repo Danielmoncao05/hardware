@@ -1,8 +1,8 @@
-// One-time migration of quick-start accounts to the new role model (run after setup/seed_reference_data).
-// admin -> administrator; member or no role -> viewer (least privilege). Accounts are kept enabled,
-// nothing is deleted, and event_log is not touched. Only users without a role_id are changed, so a
-// re-run never overrides an administrator's later reassignment.
-// Returns every migrated account so an administrator can review the viewer assignments before launch.
+// Migração única das contas do quick-start para o novo modelo de perfis (rodar depois de setup/seed_reference_data).
+// admin -> administrator; member ou sem perfil -> viewer (menor privilégio). As contas continuam habilitadas,
+// nada é apagado e event_log não é alterado. Só usuários sem role_id são alterados, então rodar de
+// novo nunca desfaz uma reatribuição feita depois por um administrador.
+// Devolve todas as contas migradas para um administrador revisar as atribuições de viewer antes de entrar em produção.
 function "setup/migrate_users" {
   input {
   }

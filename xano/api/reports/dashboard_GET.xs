@@ -1,11 +1,11 @@
-// Operational dashboard (reports.read). Every figure is computed from the persisted records at request
-// time and, when localizacao_id is given, only from equipment at that location (and work/occurrences
-// on that equipment).
-//  - equipment totals by status (active = all but decommissioned, which is reported separately)
-//  - active equipment totals by category
-//  - preventive work: overdue and due within janela_dias (planned only; completed/canceled excluded)
-//  - open and in-progress occurrences by severity and status
-//  - maintenance completed in the last atividade_dias days
+// Painel operacional (reports.read). Todos os números são calculados a partir dos registros gravados, no momento
+// da requisição e, quando localizacao_id é informado, só com os equipamentos daquela localização (e trabalhos/ocorrências
+// desses equipamentos).
+//  - totais de equipamentos por status (ativos = todos menos os descomissionados, que são informados à parte)
+//  - totais de equipamentos ativos por categoria
+//  - preventivas: atrasadas e previstas dentro de janela_dias (só planejadas; concluídas/canceladas ficam de fora)
+//  - ocorrências abertas e em andamento por severidade e status
+//  - manutenções concluídas nos últimos atividade_dias dias
 query dashboard verb=GET {
   api_group = "Reports"
   auth = "user"
@@ -37,7 +37,7 @@ query dashboard verb=GET {
       value = now|transform_timestamp:("-" ~ $input.atividade_dias ~ " days")
     }
 
-    // Equipment by status
+    // Equipamentos por status
     var $por_status {
       value = {}
     }
@@ -55,7 +55,7 @@ query dashboard verb=GET {
       }
     }
 
-    // Active equipment by category
+    // Equipamentos ativos por categoria
     db.query categorias {
       sort = {nome: "asc"}
       output = ["id", "nome", "ativo"]
@@ -86,7 +86,7 @@ query dashboard verb=GET {
       }
     }
 
-    // Preventive work due and overdue
+    // Preventivas previstas e atrasadas
     db.query manutencoes {
       join = {
         equipamentos: {
@@ -129,7 +129,7 @@ query dashboard verb=GET {
       }
     } as $proximas
 
-    // Open occurrences by severity and status (open / in_progress)
+    // Ocorrências abertas por severidade e status (open / in_progress)
     var $ocorrencias {
       value = {}
     }
@@ -182,7 +182,7 @@ query dashboard verb=GET {
       }
     }
 
-    // Recent service activity
+    // Atividade de manutenção recente
     db.query manutencoes {
       join = {
         equipamentos: {

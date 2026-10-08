@@ -1,4 +1,4 @@
-"""Occurrences: status queues, technical reporting, assignment, resolution, and cancellation."""
+"""Ocorrências: filas por status, registro técnico, atribuição, resolução e cancelamento."""
 
 import reflex as rx
 
@@ -87,7 +87,7 @@ class OccurrenceState(OptionsState):
         self.page = max(1, self.page - 1)
         await self._fetch()
 
-    # Not cached: a dependency-free cached var is computed once and would keep a stale time
+    # Sem cache: uma var em cache sem dependências é calculada uma vez só e manteria um horário desatualizado
     @rx.var(cache=False)
     def now_local(self) -> str:
         return now_local_input()
@@ -99,7 +99,7 @@ class OccurrenceState(OptionsState):
 
     @rx.event
     async def report(self, form: dict):
-        # Events run one at a time: a second submit queued by a double click arrives after the dialog closed
+        # Os eventos rodam um de cada vez: um segundo envio enfileirado por clique duplo chega depois que o diálogo fechou
         if not self.report_open:
             return
         self.form_error = ""
@@ -188,8 +188,8 @@ def row_actions(o) -> rx.Component:
             rx.cond(o["status"] == "open", rx.button("Iniciar", size="1", variant="soft", on_click=s.open_action("iniciar", o)), rx.fragment()),
             rx.button("Resolver", size="1", variant="soft", color_scheme="green", on_click=s.open_action("resolver", o)),
             rx.button("Cancelar", size="1", variant="soft", color_scheme="red", on_click=s.open_action("cancelar", o)),
-            # Opens the maintenance form pre-filled as corrective and linked to this occurrence.
-            # Technicians may only do this for occurrences assigned to them (same rule as the API).
+            # Abre o formulário de manutenção preenchido como corretiva e vinculado a esta ocorrência.
+            # Técnicos só podem fazer isso em ocorrências atribuídas a eles (mesma regra da API).
             rx.cond(
                 s.can_manage_maintenance | (s.can_work_maintenance & (o["responsavel_id"] == s.user_id)),
                 rx.link(

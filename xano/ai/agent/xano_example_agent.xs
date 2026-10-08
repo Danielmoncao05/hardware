@@ -1,6 +1,6 @@
-//  The Xano Example Agent gets you started with a basic AI Agent to integrate into your workflows. You can easily build on top of it, connect tools, and adjust the prompt to adapt to your use case.
-// 
-//  It comes with a Tool connected to the Xano Documentation, which has context to the Xano Docs. To test the Baseline Agent, open the Demo API in the Authentication API Group.
+//  O Xano Example Agent é um ponto de partida: um agente de IA básico para integrar aos seus fluxos. Dá para evoluí-lo, conectar ferramentas e ajustar o prompt ao seu caso de uso.
+//
+//  Ele vem com uma ferramenta conectada à documentação do Xano, que dá contexto da documentação. Para testar o agente, abra a Demo API no grupo de API Authentication.
 agent "Xano Example Agent" {
   canonical = "LhN8JXne"
   tags = ["xano:quick-start"]

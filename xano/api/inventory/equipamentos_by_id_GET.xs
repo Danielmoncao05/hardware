@@ -1,6 +1,6 @@
-// Equipment detail (operational.read): record, derived manufacturer/category, location, derived
-// last/next maintenance dates, component assignments (installed and removed), and occurrence counts.
-// The chronological history is served by equipamentos/{id}/historico in the Maintenance group.
+// Detalhe do equipamento (operational.read): registro, fabricante/categoria derivados, localização, datas
+// derivadas da última/próxima manutenção, componentes (instalados e removidos) e contagem de ocorrências.
+// O histórico cronológico é servido por equipamentos/{id}/historico, no grupo Maintenance.
 query "equipamentos/{equipamento_id}" verb=GET {
   api_group = "Inventory"
   auth = "user"

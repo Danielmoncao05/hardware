@@ -1,6 +1,6 @@
-// Performance fixture (task 6.2): bulk-inserts synthetic equipment so the inventory list can be measured
-// at 10,000 records. Rows are tagged with the PERF- asset prefix and reuse existing active models and
-// locations. Run only in a test deployment; it refuses to exceed the requested total.
+// Dados de desempenho (tarefa 6.2): insere em massa equipamentos sintéticos para medir a listagem de inventário
+// com 10.000 registros. As linhas usam o prefixo de patrimônio PERF- e reaproveitam modelos e
+// localizações ativos existentes. Rode só em ambiente de teste; recusa passar do total pedido.
 function "setup/seed_perf_data" {
   input {
     int total?=10000 filters=min:1|max:20000

@@ -1,5 +1,5 @@
-// N:N assignment of catalog components to equipment. Each installed instance has its own id;
-// removal is recorded in removido_em rather than deleting the row.
+// Vínculo N:N entre componentes do catálogo e equipamentos. Cada instância instalada tem seu próprio id;
+// a remoção é registrada em removido_em em vez de apagar a linha.
 table equipamento_componentes {
   auth = false
 

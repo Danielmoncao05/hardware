@@ -1,7 +1,7 @@
-// Users that work in an area can be assigned to: id and name only (operational.read).
-// Only enabled users whose role holds "<area>.manage" or "<area>.manage_assigned" are listed, matching
-// the server-side check hhm/require_assignable_user. The full user list (email, role, enabled state)
-// stays administrator-only in the Users group.
+// Usuários que podem ser atribuídos a trabalhos de uma área: só id e nome (operational.read).
+// Só lista usuários habilitados cujo perfil tem "<area>.manage" ou "<area>.manage_assigned", igual
+// à verificação no servidor hhm/require_assignable_user. A lista completa de usuários (e-mail, perfil, habilitação)
+// continua exclusiva de administradores, no grupo Users.
 query responsaveis verb=GET {
   api_group = "Maintenance"
   auth = "user"

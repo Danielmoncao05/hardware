@@ -1,7 +1,7 @@
-// Provisions a user account with a temporary password and an active role (users.manage).
-// The account is flagged deve_trocar_senha: until the user replaces the temporary password
-// (auth/change_password) it holds no permissions. Administrators cannot set or reset the password of an
-// existing account; forgotten passwords go through the email reset flow only.
+// Cria uma conta de usuário com senha temporária e um perfil ativo (users.manage).
+// A conta fica marcada com deve_trocar_senha: até o usuário trocar a senha temporária
+// (auth/change_password) ela não tem permissões. Administradores não podem definir nem redefinir a senha de uma
+// conta existente; senhas esquecidas passam somente pelo fluxo de redefinição por e-mail.
 query users verb=POST {
   api_group = "Users"
   auth = "user"

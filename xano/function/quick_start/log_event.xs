@@ -1,18 +1,18 @@
-// Creates a record in the event log table
+// Cria um registro na tabela de log de eventos
 function "Quick Start/log_event" {
   input {
-    // Unique identifier for the user who performed the action.
+    // Identificador único do usuário que executou a ação.
     int user_id
   
-    // A description of the action performed by the user (e.g., 'login', 'created_invoice').
+    // Descrição da ação executada pelo usuário (ex.: 'login', 'created_invoice').
     text action
   
-    // Additional data related to the event, such as resource IDs or old/new values.
+    // Dados adicionais do evento, como IDs de recursos ou valores antigos/novos.
     json metadata?
   }
 
   stack {
-    // Add a new user event log entry
+    // Adiciona uma nova entrada no log de eventos do usuário
     db.add event_log {
       data = {
         created_at: "now"

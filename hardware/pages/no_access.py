@@ -1,6 +1,6 @@
-"""Landing page for signed-in users who lack the permission a page requires.
+"""Página de destino para usuários logados sem a permissão exigida por uma página.
 
-It has no permission requirement of its own, so guards can always redirect here without looping.
+Ela não exige permissão própria, então os guards sempre podem redirecionar para cá sem entrar em loop.
 """
 
 import reflex as rx

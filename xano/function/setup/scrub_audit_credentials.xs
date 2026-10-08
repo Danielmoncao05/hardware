@@ -1,8 +1,8 @@
-// One-time cleanup of credential material in historical audit events (decision 4).
-// Before the fix in this change, the quick-start login, signup, auth/me, magic-link login and password
-// reset endpoints logged the whole user record as event_log.metadata, including the password hash and
-// the hashed password-reset token. This function keeps every event (action, actor, timestamp and the
-// remaining metadata) and only sets those two values to null. Idempotent; records its own audit event.
+// Limpeza única do material de credenciais nos eventos históricos de auditoria (decisão 4).
+// Antes da correção desta mudança, os endpoints de login, cadastro, auth/me, magic-link login e redefinição
+// de senha do quick-start gravavam o registro inteiro do usuário em event_log.metadata, inclusive o hash da senha e
+// o hash do token de redefinição. Esta função mantém todos os eventos (ação, autor, data e o
+// restante da metadata) e só troca esses dois valores por null. Idempotente; registra o próprio evento de auditoria.
 function "setup/scrub_audit_credentials" {
   input {
   }
@@ -12,7 +12,7 @@ function "setup/scrub_audit_credentials" {
       value = []
     }
 
-    // One unpaginated read: this runs once, over the quick-start auth events only
+    // Uma leitura sem paginação: roda uma única vez, só sobre os eventos de autenticação do quick-start
     db.query event_log {
       where = $db.event_log.action in ["login", "signup", "get_auth_user", "login_for_password_reset", "reset_password"]
       sort = {id: "asc"}

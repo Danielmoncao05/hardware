@@ -1,9 +1,9 @@
-// Single post-push setup step: seeds reference data, migrates existing accounts, then blanks credential
-// material that the old quick-start endpoints wrote into audit events (setup/scrub_audit_credentials).
-// After the schema push, login and every permission check require ativo = true and a role, which existing
-// accounts only receive from the migration. Running seed and migration in one call keeps that lockout window to the
-// time between the push and this command (see docs/operations.md, First deployment).
-// Idempotent: each step only changes what is still missing.
+// Passo único de setup após o push: cria os dados de referência, migra as contas existentes e depois apaga o material de credenciais
+// que os endpoints antigos do quick-start gravaram nos eventos de auditoria (setup/scrub_audit_credentials).
+// Depois do push do schema, o login e toda verificação de permissão exigem ativo = true e um perfil, que as contas
+// existentes só recebem pela migração. Rodar seed e migração numa chamada só limita esse bloqueio ao
+// tempo entre o push e este comando (ver docs/operations.md, Primeira implantação).
+// Idempotente: cada passo só altera o que ainda falta.
 function "setup/run_deployment_setup" {
   input {
   }
@@ -18,7 +18,7 @@ function "setup/run_deployment_setup" {
 
     function.run "setup/migrate_users" as $migration
 
-    // Blank credential material that the old quick-start endpoints logged (events are kept)
+    // Apaga o material de credenciais que os endpoints antigos do quick-start registraram (os eventos são mantidos)
     function.run "setup/scrub_audit_credentials" as $scrub
   }
 

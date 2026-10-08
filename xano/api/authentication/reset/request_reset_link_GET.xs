@@ -1,8 +1,8 @@
-// Request a one-time password-reset link by email.
-// Security: the token is a random UUID stored only as a hash (password field), valid for 60 minutes,
-// single use, and replaced whenever a new link is requested. Unknown and disabled accounts get the
-// same response as a sent link, and configuration is checked before the account lookup so a missing
-// configuration cannot reveal which emails exist.
+// Pede por e-mail um link de redefinição de senha de uso único.
+// Segurança: o token é um UUID aleatório guardado só como hash (campo password), válido por 60 minutos,
+// de uso único e substituído sempre que um novo link é pedido. Contas desconhecidas ou desabilitadas recebem a
+// mesma resposta de um link enviado, e a configuração é verificada antes da busca da conta, para que uma
+// configuração ausente não revele quais e-mails existem.
 query "reset/request-reset-link" verb=GET {
   api_group = "Authentication"
 
@@ -16,12 +16,12 @@ query "reset/request-reset-link" verb=GET {
       error = "Password recovery is not configured yet. Contact an administrator."
     }
 
-    // Generate a one-time magic link
+    // Gera um link mágico de uso único
     function.run "Quick Start/generate_magic_link" {
       input = {email: $input.email}
     } as $token_and_email
 
-    // Unknown or disabled account: answer exactly like a sent link so emails cannot be enumerated
+    // Conta desconhecida ou desabilitada: responde igual a um link enviado, para os e-mails não poderem ser descobertos
     conditional {
       if ($token_and_email == null) {
         return {
@@ -32,12 +32,12 @@ query "reset/request-reset-link" verb=GET {
       }
     }
 
-    // Link to the application's reset page (HHM_APP_URL is the production URL, e.g. https://equipamentos.example.org)
+    // Link para a página de redefinição do app (HHM_APP_URL é a URL de produção, ex.: https://equipamentos.example.org)
     var $magic_link {
       value = $env.HHM_APP_URL ~ "/reset-password?magic_token=" ~ ($token_and_email.token|url_encode) ~ "&email=" ~ ($token_and_email.email|url_encode)
     }
 
-    // HTML message with the reset link
+    // Mensagem HTML com o link de redefinição
     util.template_engine {
       value = """
         <!DOCTYPE html>

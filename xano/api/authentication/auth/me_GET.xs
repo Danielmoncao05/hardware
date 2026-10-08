@@ -1,5 +1,5 @@
-// Get the authenticated user with their role and permission keys.
-// Disabled users are refused even while an earlier token is still unexpired.
+// Devolve o usuário autenticado com seu perfil e as chaves de permissão.
+// Usuários desabilitados são recusados mesmo que um token anterior ainda não tenha expirado.
 query "auth/me" verb=GET {
   api_group = "Authentication"
   auth = "user"
@@ -8,7 +8,7 @@ query "auth/me" verb=GET {
   }
 
   stack {
-    // Get the user record based on the auth ID
+    // Busca o registro do usuário pelo ID da autenticação
     db.get user {
       field_name = "id"
       field_value = $auth.id

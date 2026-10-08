@@ -1,8 +1,8 @@
-// Maintenance report (reports.read): history, upcoming, or overdue work, with equipment and location.
-// situacao = "overdue" / "upcoming" use the shared due-work definition (dashboard, list, report): planned
-// PREVENTIVE maintenance only, dated before today / from today on, within de/ate when given.
-// Without situacao, tipo filters all records (history).
-// formato = "csv" exports every matching row (up to 10,000) with the same filters.
+// Relatório de manutenções (reports.read): histórico, previstas ou atrasadas, com equipamento e localização.
+// situacao = "overdue" / "upcoming" usam a definição compartilhada de trabalho pendente (painel, lista, relatório): somente
+// manutenções PREVENTIVAS planejadas, datadas antes de hoje / de hoje em diante, dentro de de/ate quando informados.
+// Sem situacao, tipo filtra todos os registros (histórico).
+// formato = "csv" exporta todas as linhas encontradas (até 10.000) com os mesmos filtros.
 query "relatorios/manutencoes" verb=GET {
   api_group = "Reports"
   auth = "user"

@@ -1,4 +1,4 @@
-// Stores user information and allows the user to authenticate  against
+// Guarda as informações do usuário e permite que ele se autentique
 table user {
   auth = true
 
@@ -9,8 +9,8 @@ table user {
     email? email filters=trim|lower
     password? password filters=min:8|minAlpha:1|minDigit:1
   
-    // Legacy quick-start role ('admin'/'member'). Superseded by role_id; kept only so
-    // setup/migrate_users can map existing accounts. Not used for authorization.
+    // Perfil legado do quick-start ('admin'/'member'). Substituído por role_id; mantido só para
+    // setup/migrate_users conseguir mapear as contas existentes. Não é usado para autorização.
     enum role? {
       values = ["admin", "member"]
     }
@@ -23,20 +23,20 @@ table user {
       }
     }
 
-    // Access role; permissions come from role_permissions. Null means no access.
+    // Perfil de acesso; as permissões vêm de role_permissions. Null significa sem acesso.
     int? role_id? {
       table = "roles"
     }
 
-    // Disabled users cannot authenticate and fail every permission check.
-    // Accounts are disabled, never deleted, so historical references remain valid.
+    // Usuários desabilitados não conseguem se autenticar e falham em toda verificação de permissão.
+    // Contas são desabilitadas, nunca apagadas, para as referências históricas continuarem válidas.
     bool ativo?=true
 
     timestamp? updated_at?
 
-    // Set when an administrator creates the account with a temporary password. While true the user
-    // holds no permissions (hhm/has_permission) and must change the password (auth/change_password)
-    // before using the system. Null (accounts created before this change) counts as false.
+    // Definido quando um administrador cria a conta com senha temporária. Enquanto for true, o usuário
+    // não tem permissões (hhm/has_permission) e precisa trocar a senha (auth/change_password)
+    // antes de usar o sistema. Null (contas criadas antes desta mudança) conta como false.
     bool deve_trocar_senha?=false
   }
 

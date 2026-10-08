@@ -1,4 +1,4 @@
-"""Login and account recovery. There is no public sign-up: administrators provision accounts."""
+"""Login e recuperação de conta. Não há cadastro público: os administradores criam as contas."""
 
 import reflex as rx
 
@@ -24,15 +24,15 @@ class RecoveryState(AuthState):
         try:
             await api.request("GET", "auth", "reset/request-reset-link", params={"email": email})
         except api.ApiError:
-            # The response must not reveal whether the email exists
+            # A resposta não pode revelar se o e-mail existe
             pass
         self.request_loading = False
         self.request_sent = True
 
     @rx.event
     async def reset_password(self, form: dict):
-        """Set the new password with the one-time emailed link (reset/confirm, a single step that never
-        creates a session)."""
+        """Define a nova senha com o link de uso único enviado por e-mail (reset/confirm, um único passo que nunca
+        cria sessão)."""
         self.reset_error = ""
         params = self.router.page.params
         token = params.get("magic_token") or ""

@@ -1,4 +1,4 @@
-// Creates a location (inventory.manage). An optional parent must exist and be active.
+// Cria uma localização (inventory.manage). A localização superior, se informada, precisa existir e estar ativa.
 query localizacoes verb=POST {
   api_group = "Inventory"
   auth = "user"

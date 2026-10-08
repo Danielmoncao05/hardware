@@ -1,6 +1,6 @@
-// Paginated, filtered equipment list with derived manufacturer/category and location names
-// (operational.read). Decommissioned equipment is excluded unless include_decommissioned is true
-// or status = "decommissioned" is requested explicitly.
+// Lista paginada e filtrada de equipamentos, com nomes de fabricante/categoria derivados e da localização
+// (operational.read). Equipamentos descomissionados ficam de fora, a menos que include_decommissioned seja true
+// ou que status = "decommissioned" seja pedido explicitamente.
 query equipamentos verb=GET {
   api_group = "Inventory"
   auth = "user"

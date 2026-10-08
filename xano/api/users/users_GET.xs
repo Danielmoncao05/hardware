@@ -1,4 +1,4 @@
-// Lists user accounts with role and enabled state (users.manage).
+// Lista as contas de usuário com perfil e habilitação (users.manage).
 query users verb=GET {
   api_group = "Users"
   auth = "user"

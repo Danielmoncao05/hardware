@@ -1,5 +1,5 @@
-// Public signup is disabled: accounts are provisioned by administrators (POST users in the Users group).
-// The endpoint is kept, rather than deleted, so existing clients get an explicit refusal.
+// O cadastro público está desativado: as contas são criadas por administradores (POST users no grupo Users).
+// O endpoint é mantido, em vez de apagado, para que clientes existentes recebam uma recusa explícita.
 query "auth/signup" verb=POST {
   api_group = "Authentication"
 

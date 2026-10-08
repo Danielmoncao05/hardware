@@ -1,5 +1,5 @@
-// Revokes a permission from a role (users.manage). users.manage cannot be revoked from the
-// administrator role, so the deployment always keeps a way to manage access.
+// Revoga uma permissão de um perfil (users.manage). users.manage não pode ser revogada do
+// perfil administrator, para o sistema sempre manter um jeito de gerenciar acessos.
 query "roles/{role_id}/permissions/{permission_id}" verb=DELETE {
   api_group = "Users"
   auth = "user"

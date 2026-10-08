@@ -1,7 +1,7 @@
-// Updates or activates/deactivates a model (inventory.manage). A changed manufacturer or category
-// must be active; the (manufacturer, category, name) combination must stay unique.
-// Equipment derives its manufacturer/category from the model, so a change here is reflected on all
-// equipment of this model and is recorded in the audit log.
+// Atualiza ou ativa/desativa um modelo (inventory.manage). Um fabricante ou categoria alterado
+// precisa estar ativo; a combinação (fabricante, categoria, nome) precisa continuar única.
+// O equipamento deriva fabricante/categoria do modelo, então uma mudança aqui se reflete em todos os
+// equipamentos deste modelo e é registrada no log de auditoria.
 query "modelos/{modelo_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"

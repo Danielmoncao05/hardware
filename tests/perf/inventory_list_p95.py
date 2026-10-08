@@ -1,11 +1,11 @@
-"""Measures standard filtered inventory-list latency (task 6.2; target p95 <= 2 s at 10,000 records).
+"""Mede a latência da listagem padrão de inventário com filtros (tarefa 6.2; meta p95 <= 2 s com 10.000 registros).
 
-Prerequisite: a test deployment with >= 10,000 equipment rows (xano function setup/seed_perf_data).
-Nominal load = CONCURRENCY parallel users issuing paginated, filtered list requests.
+Pré-requisito: um ambiente de teste com >= 10.000 equipamentos (xano function setup/seed_perf_data).
+Carga nominal = CONCURRENCY usuários em paralelo fazendo requisições de listagem paginadas e filtradas.
 
-    HHM_TEST_ADMIN_EMAIL=... HHM_TEST_ADMIN_PASSWORD=... python tests/perf/inventory_list_p95.py [requests] [concurrency]
+    HHM_TEST_ADMIN_EMAIL=... HHM_TEST_ADMIN_PASSWORD=... python tests/perf/inventory_list_p95.py [requisições] [concorrência]
 
-Prints the setup and percentiles so the result can be recorded; exits 1 when p95 > 2 s.
+Imprime a configuração e os percentis para o resultado ser registrado; sai com 1 quando p95 > 2 s.
 """
 
 import asyncio
@@ -37,7 +37,7 @@ async def main(requests: int, concurrency: int) -> int:
         locs = (await client.get(f"{BASE}/api:{INVENTORY}/localizacoes", headers=headers)).json()
         cats = (await client.get(f"{BASE}/api:{INVENTORY}/categorias", headers=headers)).json()
 
-        # Standard list views: unfiltered first page, and by status, location, category, text search
+        # Listagens padrão: primeira página sem filtro e por status, localização, categoria e busca por texto
         def params() -> dict:
             p = {"page": random.randint(1, 20), "per_page": 25}
             kind = random.choice(["none", "status", "loc", "cat", "q"])

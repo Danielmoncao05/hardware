@@ -1,9 +1,9 @@
-// Occurrence state transitions (manager, or the assigned technician):
+// Transições de estado da ocorrência (gestor ou o técnico atribuído):
 //   acao = "iniciar":  open -> in_progress
-//   acao = "resolver": open/in_progress -> resolved; requires resolvida_em (not in the future, not
-//                      before the report) and resumo_resolucao
-//   acao = "cancelar": open/in_progress -> canceled; requires motivo_cancelamento
-// A rejected transition leaves the occurrence unchanged.
+//   acao = "resolver": open/in_progress -> resolved; exige resolvida_em (não futura, não
+//                      anterior ao relato) e resumo_resolucao
+//   acao = "cancelar": open/in_progress -> canceled; exige motivo_cancelamento
+// Uma transição recusada deixa a ocorrência inalterada.
 query "ocorrencias/{ocorrencia_id}/transicao" verb=POST {
   api_group = "Maintenance"
   auth = "user"

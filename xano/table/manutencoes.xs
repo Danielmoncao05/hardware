@@ -1,5 +1,5 @@
-// Preventive and corrective maintenance. Last/next maintenance dates for equipment are derived
-// from this table at read time and never stored on equipamentos.
+// Manutenção preventiva e corretiva. As datas da última/próxima manutenção dos equipamentos são derivadas
+// desta tabela no momento da leitura e nunca gravadas em equipamentos.
 table manutencoes {
   auth = false
 

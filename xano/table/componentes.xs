@@ -1,4 +1,4 @@
-// Hardware component catalog. One catalog entry can be installed on many equipment items.
+// Catálogo de componentes de hardware. Um item do catálogo pode ser instalado em vários equipamentos.
 table componentes {
   auth = false
 

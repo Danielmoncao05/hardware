@@ -1,4 +1,4 @@
-// Occurrence detail with reporter/responsible names and the corrective maintenance linked to it
+// Detalhe da ocorrência com os nomes de quem relatou e do responsável e a manutenção corretiva vinculada
 // (operational.read).
 query "ocorrencias/{ocorrencia_id}" verb=GET {
   api_group = "Maintenance"

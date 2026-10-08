@@ -1,6 +1,6 @@
-// Installs a catalog component on equipment (inventory.manage). The same component may be installed
-// several times (each assignment has its own id, e.g. one per slot). Quantity must be positive;
-// equipment and component must exist, and the component must be active.
+// Instala um componente do catálogo em um equipamento (inventory.manage). O mesmo componente pode ser instalado
+// várias vezes (cada instalação tem seu próprio id, ex.: uma por slot). A quantidade precisa ser positiva;
+// equipamento e componente precisam existir, e o componente precisa estar ativo.
 query "equipamentos/{equipamento_id}/componentes" verb=POST {
   api_group = "Inventory"
   auth = "user"

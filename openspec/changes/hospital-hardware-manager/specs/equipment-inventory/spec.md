@@ -1,82 +1,82 @@
-# Spec Delta
+# Delta da spec
 
-## Purpose
+## Propósito
 
-Define the technical inventory and lifecycle records used to identify, locate, configure, and track hospital equipment without handling patient or clinical records.
+Definir os registros técnicos de inventário e de ciclo de vida usados para identificar, localizar, configurar e acompanhar os equipamentos hospitalares, sem tratar registros de pacientes ou clínicos.
 
 ## ADDED Requirements
 
-### Requirement: Manage equipment reference catalogs
-The system SHALL allow authorized users to create, view, update, and deactivate manufacturers, categories, and models. Each model SHALL reference exactly one manufacturer and one category; a manufacturer and category MAY each be referenced by multiple models. Categories SHALL support the supplied set: monitor multiparamétrico, ventilador pulmonar, bomba de infusão, desfibrilador, eletrocardiógrafo, máquina de anestesia, ultrassom, raio-X, tomógrafo, ressonância magnética, oxímetro, and aspirador hospitalar. Deactivation SHALL preserve historical references and prevent new assignments.
+### Requirement: Gerenciar os catálogos de referência dos equipamentos
+O sistema DEVE permitir que usuários autorizados criem, vejam, atualizem e desativem fabricantes, categorias e modelos. Cada modelo DEVE referenciar exatamente um fabricante e uma categoria; um fabricante e uma categoria PODEM ser referenciados por vários modelos. As categorias DEVEM incluir o conjunto fornecido: monitor multiparamétrico, ventilador pulmonar, bomba de infusão, desfibrilador, eletrocardiógrafo, máquina de anestesia, ultrassom, raio-X, tomógrafo, ressonância magnética, oxímetro e aspirador hospitalar. A desativação DEVE preservar as referências históricas e impedir novas atribuições.
 
-#### Scenario: Register model with its manufacturer and category
-- **WHEN** an authorized user saves a model with a name, manufacturer, and category that exist
-- **THEN** the system SHALL persist the model with both foreign-key relationships and make it available for equipment registration
+#### Scenario: Cadastrar um modelo com seu fabricante e sua categoria
+- **QUANDO** um usuário autorizado salva um modelo com nome, fabricante e categoria existentes
+- **ENTÃO** o sistema DEVE gravar o modelo com as duas chaves estrangeiras e deixá-lo disponível para o cadastro de equipamentos
 
-#### Scenario: Reject missing or inactive model references
-- **WHEN** a user attempts to save a model without a manufacturer or category, or using an inactive reference
-- **THEN** the system SHALL reject the change and identify the invalid required relationship
+#### Scenario: Recusar referências ausentes ou inativas no modelo
+- **QUANDO** um usuário tenta salvar um modelo sem fabricante ou categoria, ou usando uma referência inativa
+- **ENTÃO** o sistema DEVE recusar a mudança e indicar qual relação obrigatória é inválida
 
-### Requirement: Register and maintain equipment records
-The system SHALL allow authorized users to register and update equipment with a name, unique asset number, manufacturer/model, location, and operational status. A model SHALL determine its manufacturer and category, and the system SHALL reject a conflicting separately supplied manufacturer or category. Serial number, manufacturing year, acquisition date, acquisition value, estimated useful life, and observations MAY be absent. When supplied, a serial number SHALL be unique among equipment records, manufacturing year SHALL be a valid calendar year, acquisition value SHALL be non-negative, and estimated useful life SHALL be positive. Acquisition date SHALL NOT be later than the current date. Equipment SHALL NOT be registered as `decommissioned`, and registering it as `out_of_service` SHALL require a reason. Decommissioning SHALL retain the equipment record and its maintenance and occurrence history.
+### Requirement: Cadastrar e manter os registros de equipamentos
+O sistema DEVE permitir que usuários autorizados cadastrem e atualizem equipamentos com nome, número de patrimônio único, fabricante/modelo, localização e status operacional. O modelo DEVE determinar o fabricante e a categoria, e o sistema DEVE recusar um fabricante ou uma categoria informados à parte que sejam conflitantes. Número de série, ano de fabricação, data de aquisição, valor de aquisição, vida útil estimada e observações PODEM ficar em branco. Quando informados, o número de série DEVE ser único entre os equipamentos, o ano de fabricação DEVE ser um ano válido, o valor de aquisição NÃO DEVE ser negativo e a vida útil estimada DEVE ser positiva. A data de aquisição NÃO DEVE ser posterior à data atual. Equipamentos NÃO DEVEM ser cadastrados como `decommissioned`, e cadastrá-los como `out_of_service` DEVE exigir um motivo. O descomissionamento DEVE manter o registro do equipamento e seu histórico de manutenções e ocorrências.
 
-#### Scenario: Register equipment with valid required fields
-- **WHEN** an authorized user submits an equipment name, unused asset number, model, location, and allowed status
-- **THEN** the system SHALL save the equipment and expose its derived category and manufacturer from the selected model
+#### Scenario: Cadastrar um equipamento com os campos obrigatórios válidos
+- **QUANDO** um usuário autorizado envia nome do equipamento, número de patrimônio não usado, modelo, localização e um status permitido
+- **ENTÃO** o sistema DEVE salvar o equipamento e mostrar a categoria e o fabricante derivados do modelo selecionado
 
-#### Scenario: Reject a duplicate asset number or serial number
-- **WHEN** a user submits an asset number already in use, or a non-empty serial number already assigned to another equipment record
-- **THEN** the system SHALL reject the save without changing either equipment record
+#### Scenario: Recusar número de patrimônio ou de série duplicado
+- **QUANDO** um usuário envia um número de patrimônio já em uso, ou um número de série não vazio já atribuído a outro equipamento
+- **ENTÃO** o sistema DEVE recusar o salvamento sem alterar nenhum dos dois registros
 
-#### Scenario: Preserve equipment history during decommissioning
-- **WHEN** an authorized user decommissions equipment with existing maintenance or occurrences
-- **THEN** the system SHALL retain the equipment and its related history and exclude it from active-equipment views by default
+#### Scenario: Preservar o histórico do equipamento ao descomissionar
+- **QUANDO** um usuário autorizado descomissiona um equipamento que tem manutenções ou ocorrências
+- **ENTÃO** o sistema DEVE manter o equipamento e o histórico relacionado e, por padrão, tirá-lo das visões de equipamentos ativos
 
-### Requirement: Manage locations and operational equipment status
-The system SHALL allow authorized users to maintain locations and SHALL allow each equipment record to reference one active location. The system SHALL provide the statuses `operational`, `under_maintenance`, `out_of_service`, and `decommissioned`; a status change SHALL be authorized, persisted, and included in the equipment's audit history. Changing equipment status SHALL require the inventory-management permission, including when the change is requested while starting or completing maintenance. A reason SHALL be required, and recorded in the audit history, whenever equipment becomes `out_of_service` or `decommissioned`, by any path. Decommissioning SHALL be final: decommissioned equipment SHALL NOT change status, move, be edited, or have components installed or removed, and SHALL remain readable with its full history. Inactive locations SHALL remain visible on historical records but SHALL NOT be selectable for new or moved equipment. Location filters SHALL match only the selected location, not its sub-locations.
+### Requirement: Gerenciar localizações e o status operacional dos equipamentos
+O sistema DEVE permitir que usuários autorizados mantenham as localizações e DEVE permitir que cada equipamento referencie uma localização ativa. O sistema DEVE oferecer os status `operational`, `under_maintenance`, `out_of_service` e `decommissioned`; uma troca de status DEVE ser autorizada, gravada e incluída no histórico de auditoria do equipamento. Trocar o status de um equipamento DEVE exigir a permissão de gestão de inventário, inclusive quando a troca é pedida ao iniciar ou concluir uma manutenção. Um motivo DEVE ser exigido, e registrado no histórico de auditoria, sempre que o equipamento passar a `out_of_service` ou `decommissioned`, por qualquer caminho. O descomissionamento DEVE ser definitivo: um equipamento descomissionado NÃO DEVE mudar de status, ser movido, ser editado nem ter componentes instalados ou removidos, e DEVE continuar legível com todo o seu histórico. Localizações inativas DEVEM continuar visíveis nos registros históricos, mas NÃO DEVEM poder ser escolhidas para equipamentos novos ou movidos. Os filtros de localização DEVEM considerar só a localização selecionada, não suas sublocalizações.
 
-#### Scenario: Move equipment to an active location
-- **WHEN** an authorized user selects an active location for equipment
-- **THEN** the system SHALL update the current location and retain the change in the audit history
+#### Scenario: Mover um equipamento para uma localização ativa
+- **QUANDO** um usuário autorizado seleciona uma localização ativa para um equipamento
+- **ENTÃO** o sistema DEVE atualizar a localização atual e manter a mudança no histórico de auditoria
 
-#### Scenario: Prevent assigning an inactive location
-- **WHEN** a user attempts to register or move equipment to an inactive location
-- **THEN** the system SHALL reject the operation and preserve the existing location
+#### Scenario: Impedir a atribuição de uma localização inativa
+- **QUANDO** um usuário tenta cadastrar ou mover um equipamento para uma localização inativa
+- **ENTÃO** o sistema DEVE recusar a operação e manter a localização existente
 
-#### Scenario: Set equipment under maintenance
-- **WHEN** an authorized user records an active maintenance operation for equipment
-- **THEN** the system SHALL allow the equipment status to be set to `under_maintenance` and SHALL show that status consistently in inventory and dashboards
+#### Scenario: Colocar um equipamento em manutenção
+- **QUANDO** um usuário autorizado registra uma manutenção em andamento para um equipamento
+- **ENTÃO** o sistema DEVE permitir colocar o status do equipamento em `under_maintenance` e DEVE mostrar esse status de forma consistente no inventário e nos painéis
 
-#### Scenario: Require a reason for out of service or decommissioning
-- **WHEN** a user registers equipment as `out_of_service`, changes its status to `out_of_service` or `decommissioned`, or completes maintenance leaving it `out_of_service`, without a reason
-- **THEN** the system SHALL reject the operation and preserve the current status
+#### Scenario: Exigir motivo para fora de serviço ou descomissionamento
+- **QUANDO** um usuário cadastra um equipamento como `out_of_service`, troca o status dele para `out_of_service` ou `decommissioned`, ou conclui uma manutenção deixando-o `out_of_service`, sem informar um motivo
+- **ENTÃO** o sistema DEVE recusar a operação e manter o status atual
 
-#### Scenario: Decommissioning is final
-- **WHEN** a user attempts to change the status of, move, edit, or change components of decommissioned equipment
-- **THEN** the system SHALL reject the operation and keep the record and its history unchanged
+#### Scenario: O descomissionamento é definitivo
+- **QUANDO** um usuário tenta trocar o status, mover, editar ou alterar os componentes de um equipamento descomissionado
+- **ENTÃO** o sistema DEVE recusar a operação e manter o registro e seu histórico inalterados
 
-#### Scenario: Status change through maintenance requires inventory permission
-- **WHEN** a user without the inventory-management permission starts or completes maintenance and asks to change the equipment status
-- **THEN** the system SHALL reject the whole request, leaving both the maintenance record and the equipment status unchanged
+#### Scenario: Trocar o status pela manutenção exige permissão de inventário
+- **QUANDO** um usuário sem a permissão de gestão de inventário inicia ou conclui uma manutenção e pede para trocar o status do equipamento
+- **ENTÃO** o sistema DEVE recusar a requisição inteira, deixando inalterados tanto a manutenção quanto o status do equipamento
 
-### Requirement: Catalog and assign hardware components
-The system SHALL allow authorized users to catalog hardware components by name and type, with optional manufacturer, model, part or serial identifier, specifications, and notes. Supported component types SHALL include processor, memory RAM, storage, motherboard, power supply, sensors, displays, batteries, electronic modules, communication boards, and other components. An equipment record SHALL support zero or more component assignments, and a component catalog record SHALL be assignable to zero or more equipment records. Each assignment SHALL identify its equipment and component and MAY record a slot or sequence, quantity, installation date, removal date, and notes. Historical assignments SHALL remain queryable after removal.
+### Requirement: Catalogar e instalar componentes de hardware
+O sistema DEVE permitir que usuários autorizados cataloguem componentes de hardware por nome e tipo, com fabricante, modelo, identificador de peça ou de série, especificações e observações opcionais. Os tipos de componente suportados DEVEM incluir processador, memória RAM, armazenamento, placa-mãe, fonte de alimentação, sensores, displays, baterias, módulos eletrônicos, placas de comunicação e outros componentes. Um equipamento DEVE aceitar zero ou mais componentes instalados, e um componente do catálogo DEVE poder ser instalado em zero ou mais equipamentos. Cada instalação DEVE identificar o equipamento e o componente e PODE registrar slot ou sequência, quantidade, data de instalação, data de remoção e observações. As instalações históricas DEVEM continuar consultáveis depois da remoção.
 
-#### Scenario: Assign and remove components
-- **WHEN** an authorized user assigns a catalog component to equipment and later records its removal
-- **THEN** the system SHALL preserve the equipment-component relationship and installation/removal details in the equipment's technical history
+#### Scenario: Instalar e remover componentes
+- **QUANDO** um usuário autorizado instala um componente do catálogo em um equipamento e depois registra a remoção dele
+- **ENTÃO** o sistema DEVE preservar a relação entre equipamento e componente e os detalhes de instalação/remoção no histórico técnico do equipamento
 
-#### Scenario: Reject invalid component assignment
-- **WHEN** a user attempts an assignment with a missing equipment or component, or a non-positive quantity
-- **THEN** the system SHALL reject it and SHALL NOT create a dangling relationship
+#### Scenario: Recusar uma instalação de componente inválida
+- **QUANDO** um usuário tenta uma instalação sem equipamento ou componente, ou com quantidade que não seja positiva
+- **ENTÃO** o sistema DEVE recusá-la e NÃO DEVE criar uma relação órfã
 
-### Requirement: Keep inventory data technical and non-clinical
-The system SHALL collect and display technical and operational equipment information only. It SHALL NOT provide medical diagnosis, patient charts, patient identifiers, clinical observations, or patient-related fields in equipment, component, location, maintenance, occurrence, dashboard, or report workflows. User-entered occurrence descriptions SHALL be framed as equipment symptoms or operational observations and SHALL not be used to make clinical decisions.
+### Requirement: Manter os dados de inventário técnicos e não clínicos
+O sistema DEVE coletar e mostrar somente informações técnicas e operacionais dos equipamentos. Ele NÃO DEVE oferecer diagnóstico médico, prontuários, identificadores de pacientes, observações clínicas nem campos relacionados a pacientes nos fluxos de equipamentos, componentes, localizações, manutenções, ocorrências, painel ou relatórios. As descrições de ocorrência digitadas pelos usuários DEVEM tratar de sintomas do equipamento ou observações operacionais e NÃO DEVEM ser usadas para tomar decisões clínicas.
 
-#### Scenario: Record a technical equipment observation
-- **WHEN** a user records a malfunction description using equipment and maintenance fields
-- **THEN** the system SHALL associate the observation only with equipment operations and SHALL NOT create or infer a patient or diagnosis record
+#### Scenario: Registrar uma observação técnica do equipamento
+- **QUANDO** um usuário registra a descrição de uma falha usando os campos de equipamento e manutenção
+- **ENTÃO** o sistema DEVE associar a observação só às operações do equipamento e NÃO DEVE criar nem deduzir um registro de paciente ou de diagnóstico
 
-#### Scenario: Attempt to use an out-of-scope clinical workflow
-- **WHEN** a user looks for patient records or diagnosis functionality
-- **THEN** the system SHALL provide no such workflow, entity, or report in the equipment-management system
+#### Scenario: Tentar usar um fluxo clínico fora do escopo
+- **QUANDO** um usuário procura registros de pacientes ou funcionalidades de diagnóstico
+- **ENTÃO** o sistema NÃO DEVE oferecer nenhum fluxo, entidade ou relatório desse tipo no sistema de gestão de equipamentos

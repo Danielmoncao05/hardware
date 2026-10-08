@@ -1,6 +1,6 @@
-// Changes equipment status, including decommissioning (inventory.manage). Decommissioning keeps the
-// record and its maintenance/occurrence history; the record only leaves active lists.
-// A reason is required to decommission or take equipment out of service.
+// Altera o status do equipamento, inclusive o descomissionamento (inventory.manage). Descomissionar mantém o
+// registro e seu histórico de manutenções/ocorrências; o registro só sai das listas ativas.
+// É obrigatório um motivo para descomissionar ou deixar o equipamento fora de serviço.
 query "equipamentos/{equipamento_id}/status" verb=POST {
   api_group = "Inventory"
   auth = "user"

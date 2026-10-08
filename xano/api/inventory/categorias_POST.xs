@@ -1,4 +1,4 @@
-// Creates an equipment category (inventory.manage). Names are unique.
+// Cria uma categoria de equipamento (inventory.manage). Os nomes são únicos.
 query categorias verb=POST {
   api_group = "Inventory"
   auth = "user"

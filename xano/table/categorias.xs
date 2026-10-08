@@ -1,4 +1,4 @@
-// Equipment categories (seeded with the 12 required categories).
+// Categorias de equipamento (criadas com as 12 categorias exigidas).
 table categorias {
   auth = false
 

@@ -1,8 +1,8 @@
-// Server-side validation shared by equipment create and edit. Throws inputerror naming the field.
-// - asset number required, non-blank, unique; serial optional, blank -> null, unique when present
-// - model must exist (and be active when newly assigned); a supplied manufacturer/category must match it
-// - manufacturing year between 1900 and the current year; acquisition date not in the future
-// Returns the normalized serial and the model with its manufacturer and category.
+// Validação no servidor compartilhada pelo cadastro e pela edição de equipamentos. Lança inputerror indicando o campo.
+// - patrimônio obrigatório, não vazio e único; série opcional, em branco -> null, única quando informada
+// - o modelo precisa existir (e estar ativo quando atribuído agora); fabricante/categoria informados precisam corresponder a ele
+// - ano de fabricação entre 1900 e o ano atual; data de aquisição não futura
+// Devolve a série normalizada e o modelo com seu fabricante e categoria.
 function "hhm/validate_equipment" {
   input {
     int? equipamento_id?

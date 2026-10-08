@@ -1,4 +1,4 @@
-// Login and retrieve an authentication token. Disabled accounts cannot log in.
+// Faz login e devolve um token de autenticação. Contas desabilitadas não conseguem entrar.
 query "auth/login" verb=POST {
   api_group = "Authentication"
 
@@ -8,38 +8,38 @@ query "auth/login" verb=POST {
   }
 
   stack {
-    // Get the user record via email
+    // Busca o registro do usuário pelo e-mail
     db.get user {
       field_name = "email"
       field_value = $input.email
       output = ["id", "email", "password", "ativo", "deve_trocar_senha"]
     } as $user
 
-    // Check to make sure a user with that email exists
+    // Verifica se existe um usuário com esse e-mail
     precondition ($user != null) {
       error_type = "accessdenied"
       error = "Invalid Credentials."
     }
 
-    // Check that the password matches the hashed password
+    // Confere a senha com o hash armazenado
     security.check_password {
       text_password = $input.password
       hash_password = $user.password
     } as $pass_result
 
-    // Verify that the password check passed
+    // Verifica se a conferência da senha passou
     precondition ($pass_result) {
       error_type = "accessdenied"
       error = "Invalid Credentials."
     }
 
-    // Disabled accounts get the same response as wrong credentials
+    // Contas desabilitadas recebem a mesma resposta que credenciais erradas
     precondition ($user.ativo == true) {
       error_type = "accessdenied"
       error = "Invalid Credentials."
     }
 
-    // Create an authentication token
+    // Cria um token de autenticação
     security.create_auth_token {
       table = "user"
       extras = {}
@@ -47,14 +47,14 @@ query "auth/login" verb=POST {
       id = $user.id
     } as $authToken
 
-    // Create an event log for login (never log the user record: it holds the password hash)
+    // Registra o evento de login (nunca registrar o registro do usuário: ele contém o hash da senha)
     function.run "Quick Start/log_event" {
       input = {user_id: $user.id, action: "login", metadata: {email: $user.email}}
     } as $event_log
   }
 
-  // deve_trocar_senha tells the client to send the user to the password change first; the API itself
-  // denies every protected operation until the change is made (hhm/has_permission)
+  // deve_trocar_senha avisa o cliente para levar o usuário primeiro à troca de senha; a própria API
+  // nega toda operação protegida até a troca ser feita (hhm/has_permission)
   response = {authToken: $authToken, user_id: $user.id, deve_trocar_senha: $user.deve_trocar_senha == true}
   tags = ["xano:quick-start"]
   guid = "daR-hB488R3lmzRni_EPtc3VKpY"

@@ -1,6 +1,6 @@
-// Derives an equipment item's last and next maintenance dates from manutencoes at read time.
-// Last: latest concluida_em among completed records. Next: earliest planned preventive date from today on.
-// Neither value is ever stored on equipamentos.
+// Deriva as datas da última e da próxima manutenção de um equipamento a partir de manutencoes, no momento da leitura.
+// Última: maior concluida_em entre os registros concluídos. Próxima: menor data de preventiva planejada de hoje em diante.
+// Nenhum dos dois valores é gravado em equipamentos.
 function "hhm/maintenance_dates" {
   input {
     int equipamento_id

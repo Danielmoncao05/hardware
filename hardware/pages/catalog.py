@@ -1,6 +1,6 @@
-"""Catalogs and locations: manufacturers, categories, models, components, and the location tree.
+"""Catálogos e localizações: fabricantes, categorias, modelos, componentes e a árvore de localizações.
 
-Records are activated/deactivated, never deleted, so historical references keep resolving.
+Registros são ativados/desativados, nunca apagados, para que referências históricas continuem válidas.
 """
 
 import reflex as rx
@@ -21,7 +21,7 @@ from ..components import (
 )
 from ..options import OptionsState, opt_text, to_int
 
-# kind -> (API path, singular label)
+# tipo -> (caminho na API, rótulo no singular)
 KINDS = {
     "fabricantes": ("fabricantes", "fabricante"),
     "categorias": ("categorias", "categoria"),
@@ -40,7 +40,7 @@ class CatalogState(OptionsState):
     form_key: int = 0
     saving: bool = False
 
-    # edit dialog
+    # diálogo de edição
     edit_kind: str = ""
     edit_row: dict = {}
     edit_error: str = ""
@@ -57,7 +57,7 @@ class CatalogState(OptionsState):
         self.error = ""
         params = {"include_inactive": self.show_inactive}
         try:
-            # Paginated catalogs are read to the end so no record is hidden
+            # Catálogos paginados são lidos até o fim para nenhum registro ficar oculto
             fab = await self._fetch_all("inventory", "fabricantes", params)
             cat = await self.call("GET", "inventory", "categorias", params=params)
             mod = await self._fetch_all("inventory", "modelos", params)
@@ -66,7 +66,7 @@ class CatalogState(OptionsState):
             self.rows = {"fabricantes": fab, "categorias": cat, "modelos": mod, "componentes": comp, "localizacoes": loc}
         except api.ApiError as err:
             self.error = err.message
-        # Create forms only offer active references
+        # Os formulários de cadastro só oferecem referências ativas
         await self._load_options("fabricantes", "categorias", "localizacoes")
 
     @rx.event
@@ -90,7 +90,7 @@ class CatalogState(OptionsState):
         return rx.toast.success(f"{label.capitalize()} {'ativado(a)' if ativo else 'desativado(a)'}.")
 
     async def _create(self, kind: str, form: dict, payload: dict):
-        """Event generator shared by the create forms; handlers re-yield its events."""
+        """Gerador de eventos compartilhado pelos formulários de cadastro; os handlers repassam seus eventos."""
         if stale_submit(form, self.form_key):
             return
         self.form_error = ""
@@ -173,7 +173,7 @@ class CatalogState(OptionsState):
         ):
             yield event
 
-    # ---- edit ----
+    # ---- edição ----
     @rx.event
     def open_edit(self, kind: str, row: dict):
         self.edit_kind = kind
@@ -252,10 +252,10 @@ class CatalogState(OptionsState):
         return self._edit_value("parent_id")
 
     def _optional_ref(self, form: dict, key: str, options: list[dict]) -> int | None:
-        """Value for an optional reference the API clears with 0 (component manufacturer, parent location).
-        Returns None (field not sent, value kept) when unchanged, and also when the current reference is
-        inactive: inactive records are not offered in the select, so the blank choice would otherwise
-        silently remove it."""
+        """Valor de uma referência opcional que a API limpa com 0 (fabricante do componente, localização superior).
+        Devolve None (campo não enviado, valor mantido) quando não mudou e também quando a referência atual está
+        inativa: registros inativos não aparecem no select, então a opção em branco acabaria
+        removendo a referência sem aviso."""
         new = to_int(form.get(key))
         current = self.edit_row.get(key)
         if new == current:
@@ -268,8 +268,8 @@ class CatalogState(OptionsState):
 
     @rx.event
     async def save_edit(self, form: dict):
-        """PATCH the record. Optional text left blank is cleared ("" tells the API to clear it); optional
-        references (component manufacturer, parent location) follow _optional_ref."""
+        """Faz o PATCH do registro. Texto opcional deixado em branco é apagado ("" diz à API para limpar); referências
+        opcionais (fabricante do componente, localização superior) seguem _optional_ref."""
         self.edit_error = ""
         kind = self.edit_kind
         if kind not in KINDS or not self.edit_row:
@@ -286,7 +286,7 @@ class CatalogState(OptionsState):
         elif kind == "modelos":
             payload = {
                 "nome": nome,
-                # Unchanged inactive references are not offered in the select; blank keeps the current one
+                # Referências inativas inalteradas não aparecem no select; em branco mantém a atual
                 "fabricante_id": to_int(form.get("fabricante_id")),
                 "categoria_id": to_int(form.get("categoria_id")),
                 "codigo": text("codigo"),
@@ -347,7 +347,7 @@ def toggle_button(kind: str, row) -> rx.Component:
 
 def edit_dialog() -> rx.Component:
     s = CatalogState
-    p = "e"  # field-id prefix: the create forms on the page use the same field names
+    p = "e"  # prefixo dos ids dos campos: os formulários de cadastro da página usam os mesmos nomes de campo
     fields = rx.match(
         s.edit_kind,
         (

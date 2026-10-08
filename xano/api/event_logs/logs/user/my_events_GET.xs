@@ -1,5 +1,5 @@
-// Pull event logs for the authenticated user. Audit history is restricted to audit.read holders
-// (administrators); use the Audit group for filtered access across users.
+// Busca os logs de eventos do usuário autenticado. O histórico de auditoria é restrito a quem tem audit.read
+// (administradores); use o grupo de auditoria para consultar com filtros entre usuários.
 query "logs/user/my_events" verb=GET {
   api_group = "Event Logs"
   auth = "user"
@@ -14,7 +14,7 @@ query "logs/user/my_events" verb=GET {
       input = {user_id: $auth.id, permission: "audit.read"}
     }
 
-    // Retrieve event logs for the authenticated user
+    // Busca os logs de eventos do usuário autenticado
     db.query event_log {
       where = $db.event_log.user_id == $auth.id
       sort = {created_at: "desc"}

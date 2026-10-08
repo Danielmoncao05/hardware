@@ -1,5 +1,5 @@
-// Changes a user's name, role, or enabled state (users.manage). Users are disabled, never deleted.
-// Administrators cannot disable themselves or change their own role, to avoid locking out the last admin.
+// Altera o nome, o perfil ou a habilitação de um usuário (users.manage). Usuários são desabilitados, nunca apagados.
+// Administradores não podem se desabilitar nem trocar o próprio perfil, para não bloquear o último administrador.
 query "users/{user_id}" verb=PATCH {
   api_group = "Users"
   auth = "user"

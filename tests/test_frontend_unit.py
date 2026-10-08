@@ -1,4 +1,4 @@
-"""Local unit tests for the frontend helpers and API client (no backend needed)."""
+"""Testes unitários locais dos auxiliares do frontend e do cliente da API (sem backend)."""
 
 import asyncio
 import json
@@ -14,7 +14,7 @@ from hardware.options import TZ, local_to_ms, ms_to_local, now_local_input, opt_
 ROOT = Path(__file__).resolve().parents[1]
 
 
-# ------------------------------------------------------------------ form value helpers
+# ------------------------------------------------------------------ auxiliares de valores de formulário
 @pytest.mark.parametrize("value,expected", [("12", 12), (" 7 ", 7), ("", None), (None, None), ("abc", None), ("1.5", None)])
 def test_to_int(value, expected):
     assert to_int(value) == expected
@@ -33,13 +33,13 @@ def test_stale_submit_drops_a_repeated_submit():
     from hardware.components import stale_submit
 
     assert not stale_submit({"_form_key": "3"}, 3)
-    # Handled after the first submit succeeded and bumped the key
+    # Tratado depois que o primeiro envio deu certo e incrementou a chave
     assert stale_submit({"_form_key": "3"}, 4)
     assert stale_submit({}, 0)
 
 
 def test_now_local_vars_are_not_cached():
-    """A cached dependency-free var is computed once, leaving the pre-filled time stale."""
+    """Uma var em cache sem dependências é calculada uma vez só, deixando desatualizado o horário pré-preenchido."""
     from hardware.pages.maintenance import MaintenanceState
     from hardware.pages.occurrences import OccurrenceState
 
@@ -53,17 +53,17 @@ def test_local_time_round_trip_uses_institution_timezone():
     assert ms_to_local(ms) == "10/03/2026 14:30"
     assert local_to_ms("") is None and local_to_ms("not a date") is None
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", now_local_input())
-    assert str(TZ)  # tzdata available (required on Windows)
+    assert str(TZ)  # tzdata disponível (obrigatório no Windows)
 
 
-# ------------------------------------------------------------------ API client
+# ------------------------------------------------------------------ cliente da API
 def _run(coro):
     return asyncio.run(coro)
 
 
 @pytest.fixture
 def mock_transport(monkeypatch):
-    """Route api.request through an httpx.MockTransport; returns the list of captured requests."""
+    """Faz api.request passar por um httpx.MockTransport; devolve a lista de requisições capturadas."""
     captured: list[httpx.Request] = []
     responses: list[httpx.Response] = []
 
@@ -143,12 +143,12 @@ def test_request_network_failure_is_user_presentable(monkeypatch):
     assert exc.value.status == 0 and "servidor" in exc.value.message
 
 
-# ------------------------------------------------------------------ guards and navigation (static)
+# ------------------------------------------------------------------ guards e navegação (estático)
 def test_permission_guard_never_redirects_to_a_guarded_page():
     state = (ROOT / "hardware" / "state.py").read_text(encoding="utf-8")
     guard = state[state.index("async def _guard") : state.index("async def _fetch_all")]
     targets = set(re.findall(r'rx\.redirect\("([^"]+)"\)', guard))
-    # /sem-acesso and /trocar-senha require only a session, so redirecting there cannot loop
+    # /sem-acesso e /trocar-senha só exigem sessão, então redirecionar para lá não entra em loop
     assert targets == {"/login", "/sem-acesso", "/trocar-senha"}, targets
 
 
@@ -163,7 +163,7 @@ def test_every_nav_link_is_gated_by_its_page_permission():
     components = (ROOT / "hardware" / "components.py").read_text(encoding="utf-8")
     nav = re.findall(r'\("([^"]+)", "(/[^"]*)", "[^"]+", (None|"\w+")\)', components)
     assert nav and all(flag != "None" for _, _, flag in nav), nav
-    # flag -> permission it checks
+    # flag -> permissão que ela verifica
     state = (ROOT / "hardware" / "state.py").read_text(encoding="utf-8")
     flag_perm = dict(re.findall(r"def (can_\w+)\(self\) -> bool:\s+return \"([\w.]+)\" in self\.permissions", state))
     pages = {
@@ -181,7 +181,7 @@ def test_every_nav_link_is_gated_by_its_page_permission():
         assert flag_perm[flag.strip('"')] in guarded, (route, flag, guarded)
 
 
-# ------------------------------------------------------------------ catalog edit: optional references
+# ------------------------------------------------------------------ edição de catálogo: referências opcionais
 def _optional_ref(edit_row: dict, form: dict, key: str, options: list[dict]):
     from types import SimpleNamespace
 
@@ -196,12 +196,12 @@ ACTIVE = [{"value": "1", "label": "A"}, {"value": "2", "label": "B"}]
 @pytest.mark.parametrize(
     "current,submitted,expected",
     [
-        (1, "1", None),  # unchanged: not sent
-        (1, "2", 2),  # changed to another active record
-        (1, "", 0),  # cleared on purpose: 0 = remove
-        (None, "", None),  # nothing before, nothing now
-        (None, "2", 2),  # newly set
-        (9, "", None),  # current is inactive (not offered): must NOT be silently removed
+        (1, "1", None),  # inalterado: não é enviado
+        (1, "2", 2),  # trocado por outro registro ativo
+        (1, "", 0),  # limpo de propósito: 0 = remover
+        (None, "", None),  # nada antes, nada agora
+        (None, "2", 2),  # definido agora
+        (9, "", None),  # o atual está inativo (não é oferecido): NÃO pode ser removido sem aviso
     ],
 )
 def test_catalog_edit_optional_reference(current, submitted, expected):
@@ -213,17 +213,17 @@ def test_equipment_history_is_shown_oldest_first():
     assert "reversed(" not in src and 'self.historico = hist.get("eventos", [])' in src
 
 
-# ------------------------------------------------------------------ temporary password on first login
+# ------------------------------------------------------------------ senha temporária no primeiro acesso
 def test_temporary_password_routes_to_change_page_before_anything_else():
     state = (ROOT / "hardware" / "state.py").read_text(encoding="utf-8")
     guard = state[state.index("async def _guard") : state.index("async def _fetch_all")]
-    # the must-change check comes before the permission check
+    # a verificação de troca obrigatória vem antes da verificação de permissão
     assert guard.index("must_change_password") < guard.index("if permissions and")
-    assert 'rx.redirect("/trocar-senha" if self.must_change_password else "/")' in state  # after login
+    assert 'rx.redirect("/trocar-senha" if self.must_change_password else "/")' in state  # depois do login
 
 
 def test_change_password_page_never_uses_the_guard():
-    """The page must stay reachable while the password change is pending (no redirect loop)."""
+    """A página precisa continuar acessível enquanto a troca de senha está pendente (sem loop de redirecionamento)."""
     src = (ROOT / "hardware" / "pages" / "change_password.py").read_text(encoding="utf-8")
     assert "_guard(" not in src and "require_login" not in src
     app = (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
@@ -235,7 +235,7 @@ def test_change_password_page_never_uses_the_guard():
     [("abcdefg1", True), ("abcdefgh", False), ("12345678", False), ("abc1", False)],
 )
 def test_change_password_client_policy_matches_api(nova, ok):
-    """Same rule as the API input filter: min 8 chars, at least one letter and one digit."""
+    """Mesma regra do filtro de entrada da API: mínimo de 8 caracteres, com pelo menos uma letra e um número."""
     valid = len(nova) >= 8 and any(c.isalpha() for c in nova) and any(c.isdigit() for c in nova)
     assert valid == ok
     src = (ROOT / "hardware" / "pages" / "change_password.py").read_text(encoding="utf-8")
@@ -244,7 +244,7 @@ def test_change_password_client_policy_matches_api(nova, ok):
     assert "password nova_senha filters=min:8|minAlpha:1|minDigit:1" in api_src
 
 
-# ------------------------------------------------------------------ reset links never create sessions
+# ------------------------------------------------------------------ links de redefinição nunca criam sessão
 def test_reset_page_uses_single_step_confirm():
     src = (ROOT / "hardware" / "pages" / "login.py").read_text(encoding="utf-8")
     assert '"reset/confirm"' in src
@@ -263,14 +263,14 @@ def test_reset_confirm_creates_no_session():
     xs = (ROOT / "xano" / "api" / "authentication" / "reset" / "confirm_POST.xs").read_text(encoding="utf-8")
     assert "create_auth_token" not in xs
     assert "password nova_senha filters=min:8|minAlpha:1|minDigit:1" in xs
-    assert "used: true" in xs  # single use
+    assert "used: true" in xs  # uso único
 
 
-# ------------------------------------------------------------------ one timezone for entry and display
+# ------------------------------------------------------------------ um só fuso para entrada e exibição
 def test_timestamps_display_in_institution_timezone():
     components = (ROOT / "hardware" / "components.py").read_text(encoding="utf-8")
     assert "rx.moment(value, format=fmt, tz=TZ_NAME)" in components
-    # every other page goes through timestamp_text/date_text, never rx.moment directly
+    # todas as outras páginas passam por timestamp_text/date_text, nunca rx.moment diretamente
     for page in (ROOT / "hardware" / "pages").glob("*.py"):
         assert "rx.moment(" not in page.read_text(encoding="utf-8"), page.name
     from hardware.options import TZ, TZ_NAME

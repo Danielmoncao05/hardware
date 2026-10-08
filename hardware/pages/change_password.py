@@ -1,8 +1,8 @@
-"""Password change for the signed-in user.
+"""Troca de senha do usuário logado.
 
-Required on first login when an administrator created the account with a temporary password (the API
-grants no permissions until it is replaced); also available any time from the menu. This page needs
-only a session, never a permission, so the guards can always redirect here without looping.
+Obrigatória no primeiro acesso quando um administrador criou a conta com senha temporária (a API não
+concede permissões até ela ser trocada); também disponível a qualquer momento pelo menu. Esta página exige
+só uma sessão, nunca uma permissão, então os guards sempre podem redirecionar para cá sem entrar em loop.
 """
 
 import reflex as rx

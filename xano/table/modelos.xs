@@ -1,5 +1,5 @@
-// Equipment models. Each model belongs to exactly one manufacturer and one category;
-// equipment derives its manufacturer and category through the model.
+// Modelos de equipamento. Cada modelo pertence a exatamente um fabricante e uma categoria;
+// o equipamento deriva fabricante e categoria pelo modelo.
 table modelos {
   auth = false
 

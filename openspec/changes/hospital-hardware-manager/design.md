@@ -1,138 +1,138 @@
 # Design
 
-## Context
+## Contexto
 
-See `proposal.md` for motivation and the three capability specs for observable behavior and acceptance scenarios. The repository currently contains a Reflex starter screen and Xano quick-start exports for users, authentication, role checks, and an event log; it has no equipment-domain implementation. The selected scope is one deployment per institution, using Reflex for the application and Xano for authenticated APIs and relational persistence.
+Ver `proposal.md` para a motivação e as três specs de capacidades para o comportamento observável e os cenários de aceitação. Hoje o repositório tem uma tela inicial em Reflex e exportações do quick-start do Xano para usuários, autenticação, verificação de perfis e log de eventos; não há implementação do domínio de equipamentos. O escopo escolhido é uma implantação por instituição, usando Reflex para o aplicativo e Xano para as APIs autenticadas e a persistência relacional.
 
-## Goals / Non-Goals
+## Objetivos / Fora do escopo
 
-**Goals:**
+**Objetivos:**
 
-- Establish a normalized relational model for equipment, catalogs, component assignments, locations, maintenance, occurrences, users, permissions, and audit events.
-- Keep business rules and authorization enforced at the API/data boundary, not only in the UI.
-- Provide an implementable path from the existing starter without changing the selected platform.
-- Keep operational equipment data distinct from patient and clinical information.
+- Estabelecer um modelo relacional normalizado para equipamentos, catálogos, instalações de componentes, localizações, manutenções, ocorrências, usuários, permissões e eventos de auditoria.
+- Manter as regras de negócio e a autorização aplicadas na fronteira da API/dados, não só na interface.
+- Oferecer um caminho implementável a partir da base existente, sem trocar a plataforma escolhida.
+- Manter os dados operacionais dos equipamentos separados das informações de pacientes e clínicas.
 
-**Non-Goals:**
+**Fora do escopo:**
 
-- Multi-tenant data partitioning within one deployment; each institution receives a separate deployment.
-- Clinical workflows, patient records, medical diagnosis, telemetry collection, or device control.
-- Integrations with hospital information systems, procurement, finance, or external maintenance vendors in this initial scope.
-- Hard deletion of records that have operational history.
+- Particionamento de dados multi-tenant dentro de uma implantação; cada instituição recebe uma implantação separada.
+- Fluxos clínicos, registros de pacientes, diagnóstico médico, coleta de telemetria ou controle de dispositivos.
+- Integrações com sistemas de informação hospitalar, compras, financeiro ou fornecedores externos de manutenção neste escopo inicial.
+- Exclusão definitiva de registros que têm histórico operacional.
 
-## Decisions
+## Decisões
 
-### Application architecture
+### Arquitetura do aplicativo
 
-- **Frontend:** Use the existing Reflex Python application for authenticated screens, navigation, forms, filters, and dashboard/report presentation.
-- **API and persistence:** Use Xano endpoint groups as the API boundary and Xano's relational data store for the application tables. Keep authoritative validation, relationship checks, role checks, and state transitions in API operations. The frontend SHALL call those operations rather than directly manipulating persistence.
-- **Authentication:** Extend the existing Xano authentication model. Disable public signup for production use; administrators provision and disable accounts. Keep credentials in the authentication mechanism, never in general application tables or client-visible state.
-- **Alternatives considered:** A separate custom API and relational database could provide portability, but it would duplicate the Xano starter already present. A browser-to-database design would expose credentials and weaken centralized authorization, so it is not selected.
+- **Frontend:** usar o aplicativo Python Reflex existente para as telas autenticadas, navegação, formulários, filtros e apresentação do painel e dos relatórios.
+- **API e persistência:** usar os grupos de endpoints do Xano como fronteira da API e o banco relacional do Xano para as tabelas do aplicativo. Manter a validação oficial, as verificações de relacionamento, as verificações de perfil e as transições de estado nas operações da API. O frontend DEVE chamar essas operações em vez de manipular a persistência diretamente.
+- **Autenticação:** estender o modelo de autenticação existente do Xano. Desativar o cadastro público em produção; administradores criam e desabilitam contas. Manter as credenciais no mecanismo de autenticação, nunca em tabelas gerais do aplicativo ou em estado visível ao cliente.
+- **Alternativas consideradas:** uma API própria com banco relacional separado daria portabilidade, mas duplicaria a base do Xano já existente. Um design em que o navegador acessa o banco diretamente exporia credenciais e enfraqueceria a autorização centralizada, por isso não foi escolhido.
 
-### Relational schema and keys
+### Schema relacional e chaves
 
-Tables use a generated, immutable `id` primary key. Xano requires this key on every table, so `role_permissions` also has an `id` key, and its (`role_id`, `permission_id`) pair is protected by a unique index instead of a composite primary key (see `validation.md`). The `equipamento_componentes` associative table uses its own generated `id` so the same component catalog entry can have multiple installed instances on one equipment item. Foreign keys use restrictive deletion semantics for records with history; reference data is deactivated instead of physically deleted. Required columns are non-null. Optional columns are nullable. Timestamps are stored consistently in UTC and presented in the institution's timezone (`HHM_TIMEZONE`), the same zone used to interpret times entered in forms.
+As tabelas usam uma chave primária `id` gerada e imutável. O Xano exige essa chave em toda tabela, então `role_permissions` também tem uma chave `id`, e o par (`role_id`, `permission_id`) é protegido por um índice único em vez de uma chave primária composta (ver `validation.md`). A tabela associativa `equipamento_componentes` usa seu próprio `id` gerado para que o mesmo item do catálogo de componentes possa ter várias instâncias instaladas em um equipamento. As chaves estrangeiras usam semântica de exclusão restritiva para registros com histórico; dados de referência são desativados em vez de apagados fisicamente. Colunas obrigatórias não aceitam null. Colunas opcionais aceitam null. As datas e horas são gravadas de forma consistente em UTC e apresentadas no fuso da instituição (`HHM_TIMEZONE`), o mesmo fuso usado para interpretar horários digitados nos formulários.
 
-| Table | Primary key | Required fields | Optional fields and relationships |
+| Tabela | Chave primária | Campos obrigatórios | Campos opcionais e relacionamentos |
 |---|---|---|---|
-| `fabricantes` | `id` | `nome` (unique) | `site`, `contato_suporte`, `observacoes`, `ativo`, timestamps |
-| `categorias` | `id` | `nome` (unique) | `descricao`, `ativo`, timestamps. Seed the 12 categories specified in `equipment-inventory/spec.md`. |
-| `modelos` | `id` | `nome`, `fabricante_id` FK, `categoria_id` FK | `codigo`, `observacoes`, `ativo`, timestamps. Unique (`fabricante_id`, `categoria_id`, `nome`). |
-| `localizacoes` | `id` | `nome` | `parent_id` self-FK nullable for a location hierarchy, `tipo`, `descricao`, `ativo`, timestamps. |
-| `equipamentos` | `id` | `nome`, `numero_patrimonio` (unique), `modelo_id` FK, `localizacao_id` FK, `status` | `numero_serie` (unique when present), `ano_fabricacao`, `data_aquisicao`, `valor_aquisicao`, `vida_util_anos`, `observacoes`, `criado_por` FK, timestamps. Manufacturer and category are derived through `modelos`, not duplicated. |
-| `componentes` | `id` | `nome`, `tipo` | `fabricante_id` nullable FK, `modelo_componente`, `numero_peca`, `especificacoes`, `observacoes`, `ativo`, timestamps. `tipo` is constrained to processor, memory RAM, storage, motherboard, power supply, sensors, displays, batteries, electronic modules, communication boards, and other. |
-| `equipamento_componentes` | `id` | `equipamento_id` FK, `componente_id` FK, `quantidade` (> 0) | `slot`, `numero_serie_instalado`, `instalado_em`, `removido_em`, `observacoes`, timestamps. A surrogate key permits several instances of the same catalog component on one equipment item. |
-| `ocorrencias` | `id` | `equipamento_id` FK, `relatada_em`, `descricao_tecnica`, `severidade`, `status`, `relatada_por` FK | `responsavel_id` FK, `resolvida_em`, `resumo_resolucao`, `motivo_cancelamento`, timestamps. |
-| `manutencoes` | `id` | `equipamento_id` FK, `tipo`, `data_planejada`, `descricao`, `status`, `responsavel_id` FK, `criado_por` FK | `iniciada_em`, `concluida_em`, `resumo_execucao`, `checklist`, `motivo_cancelamento`, `intervalo_recorrencia_dias`, `ocorrencia_id` FK, timestamps. |
-| `user` (existing Xano auth table, extended) | `id` | `name`, `email` (unique), `role_id` FK, `ativo` | Authentication-managed credential fields and timestamps; the legacy `role` enum is kept only for migration. Retain disabled accounts referenced by historical records. |
-| `roles` | `id` | `nome` (unique) | `descricao`, `ativo`, timestamps. Seed `administrator`, `asset_manager`, `technician`, `viewer`. |
-| `permissions` | `id` | `chave` (unique), `descricao` | Timestamps. Permissions correspond to the protected read, create, update, deactivate, maintenance, occurrence, report, audit, and user-administration operations. |
-| `role_permissions` | `id`; unique (`role_id`, `permission_id`), both FKs | Both keys | Timestamps. The unique index prevents duplicate role-permission grants. |
-| `event_log` | `id` | `action`, `created_at` | `user_id` FK, `metadata` for structured before/after details and affected-record identifiers. Extend the existing Xano event-log table for audit use; restrict editing to trusted server operations. `action` is required by every writer (`hhm/audit` and the quick-start `log_event` both take it as a required input); the column itself stays nullable because the existing quick-start table already holds rows and a stricter column would put the additive schema push at risk (`validation.md` #13 shows omitted text would otherwise be stored as `""`). |
+| `fabricantes` | `id` | `nome` (único) | `site`, `contato_suporte`, `observacoes`, `ativo`, datas de registro |
+| `categorias` | `id` | `nome` (único) | `descricao`, `ativo`, datas de registro. Criar as 12 categorias especificadas em `equipment-inventory/spec.md`. |
+| `modelos` | `id` | `nome`, FK `fabricante_id`, FK `categoria_id` | `codigo`, `observacoes`, `ativo`, datas de registro. Único (`fabricante_id`, `categoria_id`, `nome`). |
+| `localizacoes` | `id` | `nome` | `parent_id`, FK para a própria tabela e anulável, para a hierarquia de localizações, `tipo`, `descricao`, `ativo`, datas de registro. |
+| `equipamentos` | `id` | `nome`, `numero_patrimonio` (único), FK `modelo_id`, FK `localizacao_id`, `status` | `numero_serie` (único quando informado), `ano_fabricacao`, `data_aquisicao`, `valor_aquisicao`, `vida_util_anos`, `observacoes`, FK `criado_por`, datas de registro. Fabricante e categoria são derivados por `modelos`, sem duplicação. |
+| `componentes` | `id` | `nome`, `tipo` | FK `fabricante_id` anulável, `modelo_componente`, `numero_peca`, `especificacoes`, `observacoes`, `ativo`, datas de registro. `tipo` é restrito a processador, memória RAM, armazenamento, placa-mãe, fonte de alimentação, sensores, displays, baterias, módulos eletrônicos, placas de comunicação e outros. |
+| `equipamento_componentes` | `id` | FK `equipamento_id`, FK `componente_id`, `quantidade` (> 0) | `slot`, `numero_serie_instalado`, `instalado_em`, `removido_em`, `observacoes`, datas de registro. Uma chave substituta permite várias instâncias do mesmo componente do catálogo em um equipamento. |
+| `ocorrencias` | `id` | FK `equipamento_id`, `relatada_em`, `descricao_tecnica`, `severidade`, `status`, FK `relatada_por` | FK `responsavel_id`, `resolvida_em`, `resumo_resolucao`, `motivo_cancelamento`, datas de registro. |
+| `manutencoes` | `id` | FK `equipamento_id`, `tipo`, `data_planejada`, `descricao`, `status`, FK `responsavel_id`, FK `criado_por` | `iniciada_em`, `concluida_em`, `resumo_execucao`, `checklist`, `motivo_cancelamento`, `intervalo_recorrencia_dias`, FK `ocorrencia_id`, datas de registro. |
+| `user` (tabela de autenticação existente do Xano, estendida) | `id` | `name`, `email` (único), FK `role_id`, `ativo` | Campos de credenciais gerenciados pela autenticação e datas de registro; o enum legado `role` é mantido só para a migração. Manter as contas desabilitadas que são referenciadas por registros históricos. |
+| `roles` | `id` | `nome` (único) | `descricao`, `ativo`, datas de registro. Criar `administrator`, `asset_manager`, `technician`, `viewer`. |
+| `permissions` | `id` | `chave` (única), `descricao` | Datas de registro. As permissões correspondem às operações protegidas de leitura, criação, atualização, desativação, manutenção, ocorrência, relatório, auditoria e administração de usuários. |
+| `role_permissions` | `id`; único (`role_id`, `permission_id`), ambas FKs | As duas chaves | Datas de registro. O índice único impede concessões duplicadas de permissão a um perfil. |
+| `event_log` | `id` | `action`, `created_at` | FK `user_id`, `metadata` para detalhes estruturados de antes/depois e identificadores do registro afetado. Estender a tabela de log de eventos existente do Xano para uso em auditoria; restringir a edição a operações confiáveis do servidor. `action` é exigida por todos que gravam (`hhm/audit` e o `log_event` do quick-start recebem como entrada obrigatória); a coluna em si continua anulável porque a tabela do quick-start já tem linhas e uma coluna mais rígida poria em risco o push aditivo do schema (`validation.md` #13 mostra que texto omitido seria gravado como `""`). |
 
-**Relationships and referential integrity**
+**Relacionamentos e integridade referencial**
 
 - `fabricantes` 1:N `modelos`; `categorias` 1:N `modelos`; `modelos` 1:N `equipamentos`.
-- `localizacoes` 1:N `equipamentos`; `localizacoes` 1:N child locations through nullable `parent_id`.
-- `equipamentos` N:N `componentes` through `equipamento_componentes`; each assignment has its own key and installation/removal history.
-- `equipamentos` 1:N `manutencoes` and 1:N `ocorrencias`; one occurrence MAY be referenced by multiple corrective maintenance records.
-- `user` 1:N created, reported, assigned, and audited records. `roles` N:N `permissions` through `role_permissions`, and `roles` 1:N `user`.
-- Model, location, component, user, and role foreign keys SHALL be validated by the API. Xano's datastore does not enforce references: it accepts nonexistent IDs and allows deleting referenced rows (`validation.md` #1, #2). Every write that sets a reference therefore checks that the target exists and, where required, is active, within the same `db.transaction`, and the API blocks physical deletion of referenced rows. Unique indexes, composite unique indexes, `min:` filters, enums, and non-null checks are enforced by the datastore. The API still checks them first to return field-specific errors, because the datastore's rejection carries no error detail.
-- The API normalizes blank optional unique values (such as `numero_serie`) to `null` before writing, and rejects missing or blank required text, which the datastore would otherwise store as `""` (`validation.md` #6, #13). Do not cascade-delete equipment or history. Deactivate catalog records; disable users. Reject deleting referenced rows, except where a record has no references and deletion is explicitly permitted by an administrator.
+- `localizacoes` 1:N `equipamentos`; `localizacoes` 1:N localizações filhas pelo `parent_id` anulável.
+- `equipamentos` N:N `componentes` por `equipamento_componentes`; cada instalação tem sua própria chave e histórico de instalação/remoção.
+- `equipamentos` 1:N `manutencoes` e 1:N `ocorrencias`; uma ocorrência PODE ser referenciada por várias manutenções corretivas.
+- `user` 1:N registros criados, relatados, atribuídos e auditados. `roles` N:N `permissions` por `role_permissions`, e `roles` 1:N `user`.
+- As chaves estrangeiras de modelo, localização, componente, usuário e perfil DEVEM ser validadas pela API. O banco do Xano não garante referências: aceita IDs inexistentes e permite apagar linhas referenciadas (`validation.md` #1, #2). Por isso, toda gravação que define uma referência verifica se o destino existe e, quando exigido, está ativo, dentro do mesmo `db.transaction`, e a API bloqueia a exclusão física de linhas referenciadas. Índices únicos, índices únicos compostos, filtros `min:`, enums e verificações de não nulo são garantidos pelo banco. Mesmo assim, a API os verifica antes, para devolver erros por campo, porque a recusa do banco não traz detalhes do erro.
+- A API converte valores únicos opcionais em branco (como `numero_serie`) para `null` antes de gravar e recusa texto obrigatório ausente ou em branco, que o banco gravaria como `""` (`validation.md` #6, #13). Não apagar em cascata equipamentos nem histórico. Desativar registros de catálogo; desabilitar usuários. Recusar a exclusão de linhas referenciadas, exceto quando um registro não tem referências e a exclusão é permitida explicitamente por um administrador.
 
-### Domain and lifecycle rules
+### Regras de domínio e de ciclo de vida
 
-- `equipamentos.status`: `operational`, `under_maintenance`, `out_of_service`, `decommissioned`. Decommissioned equipment is retained and omitted from active lists by default.
-- `manutencoes.tipo`: `preventive` or `corrective`; status: `planned`, `in_progress`, `completed`, `canceled`. Completion requires a completion date and work summary; cancellation requires a reason. Preventive planned work has a planned date and responsible user.
-- `ocorrencias.severidade`: `low`, `medium`, `high`, `critical`; status: `open`, `in_progress`, `resolved`, `canceled`. Resolution requires a date and summary; cancellation requires a reason.
-- Model category and manufacturer are authoritative; clients do not independently persist a conflicting category or manufacturer on equipment.
-- Asset number is mandatory and unique. Serial number is optional and unique when supplied. Value is non-negative; useful life is positive; manufacturing year is valid; acquisition date cannot be in the future.
-- Component assignment quantity is positive. Installation/removal timestamps are preserved; removal is recorded rather than deleting the assignment.
-- Last maintenance is a read-time derived value: the latest completion date among completed maintenance. Next maintenance is derived as the earliest future planned preventive date. These values are never independently edited on an equipment row.
-- Changing equipment status, location, role, maintenance state, or occurrence state is an authorized state transition that adds an audit event. Store core domain facts in relational columns; reserve `event_log.metadata` for audit details, not as a substitute for domain tables.
-- One deployment contains data for one institution. Do not add a tenant key unless the deployment model changes through a separately specified change.
-- Confirmed rules (review decisions, 2026-10-08):
-  - A reason is required whenever equipment becomes `out_of_service` or `decommissioned`, through any path (registration, the status action, or completing maintenance), and it is recorded in the audit event.
-  - Decommissioning is final: decommissioned equipment cannot change status, move, be edited, or have components installed or removed. It remains readable with its full history.
-  - A preventive recurrence interval only suggests the next planned date when the work is completed; it never schedules maintenance automatically.
-  - Location filters (lists, dashboard, reports) match the selected location only, not its sub-locations.
-- Due work ("upcoming"/"overdue") means planned preventive maintenance, identically in the dashboard, maintenance lists, and reports.
-- Equipment history is shown oldest first (chronological order).
-- Timestamps are entered and displayed in one institution timezone (`HHM_TIMEZONE`), independent of the browser's zone. Calendar dates (planned dates, acquisition date) are never timezone-converted.
+- `equipamentos.status`: `operational`, `under_maintenance`, `out_of_service`, `decommissioned`. Equipamentos descomissionados são mantidos e, por padrão, ficam fora das listas ativas.
+- `manutencoes.tipo`: `preventive` ou `corrective`; status: `planned`, `in_progress`, `completed`, `canceled`. A conclusão exige data de conclusão e resumo do serviço; o cancelamento exige motivo. Trabalho preventivo planejado tem data planejada e responsável.
+- `ocorrencias.severidade`: `low`, `medium`, `high`, `critical`; status: `open`, `in_progress`, `resolved`, `canceled`. A resolução exige data e resumo; o cancelamento exige motivo.
+- A categoria e o fabricante do modelo são a fonte oficial; os clientes não gravam à parte uma categoria ou um fabricante conflitante no equipamento.
+- O número de patrimônio é obrigatório e único. O número de série é opcional e único quando informado. O valor não é negativo; a vida útil é positiva; o ano de fabricação é válido; a data de aquisição não pode ser futura.
+- A quantidade de um componente instalado é positiva. As datas de instalação/remoção são preservadas; a remoção é registrada em vez de apagar a instalação.
+- A última manutenção é um valor derivado na leitura: a data de conclusão mais recente entre as manutenções concluídas. A próxima manutenção é derivada como a data preventiva planejada futura mais próxima. Esses valores nunca são editados à parte na linha do equipamento.
+- Trocar o status, a localização ou o perfil, ou o estado de uma manutenção ou ocorrência, é uma transição de estado autorizada que adiciona um evento de auditoria. Guardar os fatos centrais do domínio em colunas relacionais; reservar `event_log.metadata` para detalhes de auditoria, não como substituto das tabelas do domínio.
+- Uma implantação contém os dados de uma instituição. Não adicionar chave de tenant, a menos que o modelo de implantação mude por uma mudança especificada à parte.
+- Regras confirmadas (decisões da revisão, 2026-10-08):
+  - É exigido um motivo sempre que um equipamento passa a `out_of_service` ou `decommissioned`, por qualquer caminho (cadastro, ação de status ou conclusão de manutenção), e ele é registrado no evento de auditoria.
+  - O descomissionamento é definitivo: um equipamento descomissionado não pode trocar de status, ser movido, ser editado nem ter componentes instalados ou removidos. Ele continua legível com todo o histórico.
+  - Um intervalo de recorrência preventiva só sugere a próxima data planejada quando o trabalho é concluído; nunca agenda manutenção automaticamente.
+  - Os filtros de localização (listas, painel, relatórios) consideram só a localização selecionada, não suas sublocalizações.
+- Trabalho pendente ("upcoming"/"overdue") significa manutenção preventiva planejada, da mesma forma no painel, nas listas de manutenção e nos relatórios.
+- O histórico do equipamento é mostrado com os mais antigos primeiro (ordem cronológica).
+- Datas e horas são digitadas e mostradas em um único fuso da instituição (`HHM_TIMEZONE`), independente do fuso do navegador. Datas de calendário (datas planejadas, data de aquisição) nunca são convertidas de fuso.
 
-### Authorization and privacy
+### Autorização e privacidade
 
-Use RBAC with least privilege and enforce permissions server-side for every API operation. The initial role matrix is:
+Usar RBAC com menor privilégio e aplicar as permissões no servidor em toda operação da API. A matriz inicial de perfis é:
 
-| Operation | Administrator | Asset manager | Technician | Viewer |
+| Operação | Administrador | Gestor de patrimônio | Técnico | Visualizador |
 |---|---:|---:|---:|---:|
-| Read equipment, catalogs, locations, maintenance, occurrences | Yes | Yes | Yes | Yes |
-| Manage equipment and catalogs | Yes | Yes | No | No |
-| Create/update maintenance and occurrences | Yes | Yes | Assigned/relevant work | No |
-| Manage users, roles, and permissions | Yes | No | No | No |
-| Read dashboard and operational reports | Yes | Yes | Yes | Yes |
-| Read audit log | Yes | No | No | No |
+| Ler equipamentos, catálogos, localizações, manutenções e ocorrências | Sim | Sim | Sim | Sim |
+| Gerenciar equipamentos e catálogos | Sim | Sim | Não | Não |
+| Criar/atualizar manutenções e ocorrências | Sim | Sim | Trabalhos atribuídos/relacionados | Não |
+| Gerenciar usuários, perfis e permissões | Sim | Não | Não | Não |
+| Ler o painel e os relatórios operacionais | Sim | Sim | Sim | Sim |
+| Ler o log de auditoria | Sim | Não | Não | Não |
 
-The matrix is a starting role policy; permissions SHALL be represented as explicit grants so they can be refined without embedding role-name checks throughout the application. Existing `admin` users map to `administrator`. Existing `member` users map initially to `viewer` (least privilege) and administrators review/reassign them before operational use. Disable public signup; do not automatically grant privileged access to existing accounts.
+A matriz é uma política inicial de perfis; as permissões DEVEM ser representadas como concessões explícitas para poderem ser refinadas sem espalhar verificações de nome de perfil pelo aplicativo. Usuários `admin` existentes viram `administrator`. Usuários `member` existentes viram inicialmente `viewer` (menor privilégio), e os administradores os revisam/reatribuem antes do uso operacional. Desativar o cadastro público; não conceder acesso privilegiado automaticamente às contas existentes.
 
-Do not add patient-related columns, screens, endpoints, analytics, or exports. Form copy and occurrence fields refer to technical equipment behavior only. Use encrypted transport, platform-supported password/session protection, server-side authorization, paginated queries, and audit access controls. The 2-second p95 list-view target and nominal-load scope are defined in `access-and-reporting/spec.md`.
+Não adicionar colunas, telas, endpoints, análises ou exportações relacionadas a pacientes. Os textos dos formulários e os campos de ocorrência tratam só do comportamento técnico do equipamento. Usar transporte criptografado, proteção de senha/sessão suportada pela plataforma, autorização no servidor, consultas paginadas e controle de acesso à auditoria. A meta de 2 segundos no p95 para as listagens e o escopo de carga nominal estão definidos em `access-and-reporting/spec.md`.
 
-- Equipment status changes require `inventory.manage`, including when requested while starting or completing maintenance; a technician without it can transition the maintenance record but not the equipment status.
-- Responsible users for maintenance or occurrences must be enabled and hold the area's `manage` or `manage_assigned` permission.
-- Password recovery uses single-use, hashed, 60-minute reset links sent through an external email service (Resend via `util.send_email`; configured with `RESEND_API_KEY`, `HHM_EMAIL_FROM`, `HHM_APP_URL`). A reset link never creates a session: `reset/confirm` verifies the token and sets the new password in one step, so the link can only change that account's password. The quick-start `reset/magic-link-login` (which returned a full session) and `reset/update_password` (which changed the password of any signed-in session without the current one) are disabled. Administrators provision accounts with a temporary password; the account is flagged `deve_trocar_senha` and holds no permissions until the user replaces that password on first login (`auth/change_password`, which requires the current password). Administrators cannot set or reset an existing user's password; a forgotten password is recovered only through the email reset flow, and completing it also clears a pending temporary password.
-- Audit events written by the quick-start endpoints before this change contained the password hash and the hashed reset token. They are kept for historical integrity and only those two values are blanked (`setup/scrub_audit_credentials`); no audit event is deleted.
+- Trocar o status do equipamento exige `inventory.manage`, inclusive quando pedido ao iniciar ou concluir uma manutenção; um técnico sem essa permissão pode mudar o estado da manutenção, mas não o status do equipamento.
+- Os responsáveis por manutenções ou ocorrências precisam estar habilitados e ter a permissão `manage` ou `manage_assigned` da área.
+- A recuperação de senha usa links de redefinição de uso único, guardados como hash e válidos por 60 minutos, enviados por um serviço de e-mail externo (Resend via `util.send_email`; configurado com `RESEND_API_KEY`, `HHM_EMAIL_FROM`, `HHM_APP_URL`). Um link de redefinição nunca cria sessão: `reset/confirm` valida o token e define a nova senha em um passo, então o link só consegue alterar a senha daquela conta. O `reset/magic-link-login` do quick-start (que devolvia uma sessão completa) e o `reset/update_password` (que alterava a senha de qualquer sessão logada sem pedir a atual) estão desativados. Administradores criam contas com senha temporária; a conta fica marcada com `deve_trocar_senha` e não tem permissões até o usuário trocar essa senha no primeiro acesso (`auth/change_password`, que exige a senha atual). Administradores não podem definir nem redefinir a senha de um usuário existente; uma senha esquecida só é recuperada pelo fluxo de redefinição por e-mail, e concluí-lo também limpa uma senha temporária pendente.
+- Os eventos de auditoria gravados pelos endpoints do quick-start antes desta mudança continham o hash da senha e o hash do token de redefinição. Eles são mantidos pela integridade histórica e só esses dois valores são apagados (`setup/scrub_audit_credentials`); nenhum evento de auditoria é apagado.
 
-### Screens and navigation
+### Telas e navegação
 
-1. **Login / account recovery:** authenticated entry; no public account creation.
-2. **Dashboard:** status/category summary, upcoming and overdue maintenance, open occurrences, recent service activity; filter by location and relevant time range.
-3. **Equipment list:** searchable, paginated inventory; filters for category, manufacturer/model, location, and status; actions gated by permissions.
-4. **Equipment detail:** overview and derived maintenance dates, component assignments, occurrence list, and chronological history; edit/move/status actions when permitted.
-5. **Equipment create/edit:** required asset identity, model, location, and status; optional serial/acquisition/useful-life/observations; model supplies manufacturer/category.
-6. **Catalogs and locations:** manufacturers, categories, models, component catalog, and hierarchical locations with create, edit, and activate/deactivate actions.
-7. **Maintenance:** calendar and list views for planned/upcoming/overdue work; create, assign, start, complete, or cancel forms with transition validation.
-8. **Occurrences:** open/in-progress/resolved/canceled queues; report, assign, resolve, cancel, and open a corrective maintenance form pre-filled from the occurrence and linked to it automatically.
-9. **Users and roles:** administrator-only user provisioning, enable/disable, and role/permission management.
-10. **Reports and audit:** filtered inventory, status/location, due maintenance, maintenance history, occurrences, and administrator-only audit views; filtered operational reports may export CSV.
+1. **Login / recuperação de conta:** entrada autenticada; sem criação pública de contas.
+2. **Painel:** resumo por status/categoria, manutenções próximas e atrasadas, ocorrências abertas, atividade recente de serviço; filtro por localização e pelo período relevante.
+3. **Lista de equipamentos:** inventário pesquisável e paginado; filtros por categoria, fabricante/modelo, localização e status; ações liberadas conforme as permissões.
+4. **Detalhe do equipamento:** visão geral e datas de manutenção derivadas, componentes instalados, lista de ocorrências e histórico cronológico; ações de editar/mover/status quando permitidas.
+5. **Cadastro/edição de equipamento:** identificação do patrimônio, modelo, localização e status obrigatórios; série, aquisição, vida útil e observações opcionais; o modelo define fabricante e categoria.
+6. **Catálogos e localizações:** fabricantes, categorias, modelos, catálogo de componentes e localizações hierárquicas, com ações de cadastrar, editar e ativar/desativar.
+7. **Manutenções:** visões de calendário e lista para trabalhos planejados/próximos/atrasados; formulários de criar, atribuir, iniciar, concluir ou cancelar, com validação das transições.
+8. **Ocorrências:** filas de abertas/em andamento/resolvidas/canceladas; relatar, atribuir, resolver, cancelar e abrir um formulário de manutenção corretiva preenchido a partir da ocorrência e vinculado a ela automaticamente.
+9. **Usuários e perfis:** exclusivo de administradores: criação de usuários, habilitar/desabilitar e gestão de perfis e permissões.
+10. **Relatórios e auditoria:** visões filtradas de inventário, status/localização, manutenções pendentes, histórico de manutenções, ocorrências e auditoria exclusiva de administradores; os relatórios operacionais filtrados podem ser exportados em CSV.
 
-## Risks / Trade-offs
+## Riscos / Concessões
 
-- [Existing Xano user roles (`admin`/`member`) do not match the new role set] → Migrate `admin` to `administrator`, default `member` to `viewer`, and require administrator review before launch.
-- [The existing public signup endpoint could create unmanaged accounts] → Disable it for the production application and provision users through administrator-only operations.
-- [Derived dates and dashboard counts can become expensive as histories grow] → Use indexed foreign keys and date/status columns, paginate lists, and optimize measured queries while preserving the relational source of truth.
-- [Free-text occurrence notes could contain patient information despite the product boundary] → Keep fields explicitly technical, do not create patient fields, warn users in the UI, restrict exports, and define operational retention/access policy before production.
-- [Changing roles or deactivating reference data can affect access and historical display] → Preserve referenced rows, use active flags, validate changes in the API, and retain audit events.
-- [Xano's native relational capabilities and export schema need validation against every planned constraint] → Verify unique constraints, FK behavior, transactions, and index support in the target Xano workspace before implementation; report any unsupported invariant rather than silently weakening it.
+- [Os perfis de usuário existentes no Xano (`admin`/`member`) não correspondem ao novo conjunto de perfis] → Migrar `admin` para `administrator`, `member` para `viewer` por padrão e exigir revisão de um administrador antes do lançamento.
+- [O endpoint público de cadastro existente poderia criar contas sem controle] → Desativá-lo no aplicativo em produção e criar usuários só por operações exclusivas de administradores.
+- [Datas derivadas e contagens do painel podem ficar caras à medida que o histórico cresce] → Usar chaves estrangeiras e colunas de data/status indexadas, paginar listas e otimizar as consultas medidas, preservando a fonte relacional da verdade.
+- [Anotações livres de ocorrências poderiam conter informações de pacientes apesar do limite do produto] → Manter os campos explicitamente técnicos, não criar campos de pacientes, avisar os usuários na interface, restringir exportações e definir a política operacional de retenção/acesso antes da produção.
+- [Trocar perfis ou desativar dados de referência pode afetar o acesso e a exibição do histórico] → Preservar as linhas referenciadas, usar flags de ativo, validar mudanças na API e manter os eventos de auditoria.
+- [As capacidades relacionais nativas do Xano e o schema de exportação precisam ser validados contra cada restrição planejada] → Verificar restrições de unicidade, comportamento de chaves estrangeiras, transações e suporte a índices no workspace do Xano de destino antes da implementação; relatar qualquer invariante não suportado em vez de enfraquecê-lo em silêncio.
 
-## Migration Plan
+## Plano de migração
 
-1. Confirm Xano relational constraints and authentication behavior against the proposed schema before changing production data.
-2. Create the reference catalogs, roles, permissions, and role grants; seed the 12 equipment categories and role definitions.
-3. Extend the existing user and event-log schema; map existing `admin` to `administrator` and `member` to `viewer`, then require administrator review.
-4. Create remaining domain tables and indexes, validate foreign keys and uniqueness, and keep new workflows unavailable until the schema is ready.
-5. Deploy API validation and authorization, then the Reflex screens; verify role-denial cases and non-clinical data boundaries before enabling user access.
-6. Rollback by disabling the new application routes and endpoints and restoring the previous deployment/schema snapshot. Do not drop tables or erase data during rollback; use a forward repair migration if records were created under the new schema.
+1. Confirmar as restrições relacionais e o comportamento de autenticação do Xano contra o schema proposto antes de alterar dados de produção.
+2. Criar os catálogos de referência, perfis, permissões e concessões por perfil; criar as 12 categorias de equipamento e as definições de perfis.
+3. Estender o schema existente de usuário e de log de eventos; mapear `admin` para `administrator` e `member` para `viewer`, e depois exigir revisão de um administrador.
+4. Criar as demais tabelas e índices do domínio, validar chaves estrangeiras e unicidade e manter os novos fluxos indisponíveis até o schema estar pronto.
+5. Publicar a validação e a autorização da API e depois as telas Reflex; verificar os casos de negação por perfil e os limites de dados não clínicos antes de liberar o acesso aos usuários.
+6. Fazer rollback desativando as novas rotas e endpoints do aplicativo e restaurando o snapshot anterior da implantação/schema. Não remover tabelas nem apagar dados no rollback; usar uma migração de correção para a frente se foram criados registros com o novo schema.
 
-## Open Questions
+## Questões em aberto
 
-- Production hosting, backup retention, and recovery-time objectives remain deployment decisions; settle them before production rollout without changing the initial domain model.
+- Hospedagem em produção, retenção de backups e objetivos de tempo de recuperação continuam sendo decisões de implantação; definir antes do lançamento em produção, sem mudar o modelo de domínio inicial.

@@ -1,4 +1,4 @@
-"""Equipment list, detail (overview, components, history), create/edit, move, and status change."""
+"""Lista e detalhe de equipamentos (visão geral, componentes, histórico), cadastro/edição, movimentação e troca de status."""
 
 import reflex as rx
 
@@ -30,7 +30,7 @@ STATUS_OPTIONS = list(EQUIP_STATUS.items())
 COMPONENT_TYPE_OPTIONS = list(COMPONENT_TYPE.items())
 
 
-# ------------------------------------------------------------------ list
+# ------------------------------------------------------------------ lista
 class EquipmentListState(OptionsState):
     items: list[dict] = []
     total: int = 0
@@ -174,7 +174,7 @@ def equipment_list_page() -> rx.Component:
     )
 
 
-# ------------------------------------------------------------------ create / edit
+# ------------------------------------------------------------------ cadastro / edição
 class EquipmentFormState(OptionsState):
     equipment_id: int = 0
     current: dict = {}
@@ -263,7 +263,7 @@ class EquipmentFormState(OptionsState):
             "nome": nome,
             "numero_patrimonio": patrimonio,
             "modelo_id": modelo_id,
-            # "" clears the serial on edit; on create a blank serial is simply not stored
+            # "" limpa o número de série na edição; no cadastro, série em branco simplesmente não é gravada
             "numero_serie": (form.get("numero_serie") or "").strip() if self.is_edit else opt_text(form.get("numero_serie")),
             "ano_fabricacao": to_int(form.get("ano_fabricacao")),
             "data_aquisicao": opt_text(form.get("data_aquisicao")),
@@ -367,7 +367,7 @@ def equipment_form_page() -> rx.Component:
     )
 
 
-# ------------------------------------------------------------------ detail
+# ------------------------------------------------------------------ detalhe
 class EquipmentDetailState(OptionsState):
     equipment_id: int = 0
     equip: dict = {}
@@ -396,7 +396,7 @@ class EquipmentDetailState(OptionsState):
         try:
             self.equip = await self.call("GET", "inventory", f"equipamentos/{self.equipment_id}")
             hist = await self.call("GET", "maintenance", f"equipamentos/{self.equipment_id}/historico")
-            # Oldest first: chronological order as returned by the API (spec: Review equipment history)
+            # Mais antigos primeiro: ordem cronológica como a API devolve (spec: Consultar o histórico do equipamento)
             self.historico = hist.get("eventos", [])
         except api.ApiError as err:
             self.error = err.message
@@ -676,7 +676,7 @@ def history_tab() -> rx.Component:
 
     def event_row(ev):
         return rx.table.row(
-            # Not-yet-started maintenance is dated by its planned calendar date: show it unconverted
+            # Manutenção ainda não iniciada é datada pela data planejada no calendário: mostrar sem converter fuso
             rx.table.cell(rx.cond(ev["somente_data"], date_text(ev["data_planejada"]), timestamp_text(ev["data"]))),
             rx.table.cell(
                 rx.match(

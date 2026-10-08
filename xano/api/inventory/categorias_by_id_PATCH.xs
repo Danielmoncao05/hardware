@@ -1,4 +1,4 @@
-// Updates or activates/deactivates a category (inventory.manage). Send "" to clear descricao.
+// Atualiza ou ativa/desativa uma categoria (inventory.manage). Envie "" para limpar descricao.
 query "categorias/{categoria_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"

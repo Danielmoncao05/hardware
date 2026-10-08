@@ -1,75 +1,75 @@
-# Spec Delta
+# Delta da spec
 
-## Purpose
+## Propósito
 
-Enable maintenance teams to plan and document preventive and corrective service, report operational occurrences, and retrieve a trustworthy equipment service history.
+Permitir que as equipes de manutenção planejem e documentem serviços preventivos e corretivos, registrem ocorrências operacionais e consultem um histórico confiável de serviços de cada equipamento.
 
 ## ADDED Requirements
 
-### Requirement: Schedule preventive maintenance
-The system SHALL allow authorized users to schedule preventive maintenance for equipment with a planned date, maintenance description or checklist, and responsible user. A schedule MAY include a recurrence interval; when recurring work is completed, the system SHALL suggest the next planned date (planned date plus the interval) and SHALL NOT schedule it automatically. The responsible user SHALL be an enabled user whose role can work on maintenance. The system SHALL identify upcoming and overdue preventive work using the planned date and current maintenance status; due work (upcoming and overdue) SHALL mean planned preventive maintenance only, with the same definition in maintenance lists, the dashboard, and reports. The next-maintenance date shown for equipment SHALL be derived from its earliest future planned preventive maintenance and SHALL NOT be stored as an independently editable copy.
+### Requirement: Agendar manutenção preventiva
+O sistema DEVE permitir que usuários autorizados agendem manutenção preventiva para um equipamento, com data planejada, descrição ou checklist da manutenção e usuário responsável. Um agendamento PODE ter um intervalo de recorrência; quando um trabalho recorrente é concluído, o sistema DEVE sugerir a próxima data planejada (data planejada mais o intervalo) e NÃO DEVE agendá-la automaticamente. O responsável DEVE ser um usuário habilitado cujo perfil pode atuar em manutenções. O sistema DEVE identificar os trabalhos preventivos próximos e atrasados pela data planejada e pelo status atual da manutenção; trabalho pendente (próximo e atrasado) DEVE significar somente manutenção preventiva planejada, com a mesma definição nas listas de manutenção, no painel e nos relatórios. A data da próxima manutenção mostrada para um equipamento DEVE ser derivada da manutenção preventiva planejada futura mais próxima e NÃO DEVE ser gravada como uma cópia editável à parte.
 
-#### Scenario: Schedule preventive maintenance
-- **WHEN** an authorized user schedules preventive maintenance with a valid equipment item, planned date, and responsible user
-- **THEN** the system SHALL create a planned maintenance record linked to that equipment and expose it in the maintenance calendar and due-work views
+#### Scenario: Agendar uma manutenção preventiva
+- **QUANDO** um usuário autorizado agenda uma manutenção preventiva com um equipamento, uma data planejada e um responsável válidos
+- **ENTÃO** o sistema DEVE criar uma manutenção planejada vinculada a esse equipamento e mostrá-la no calendário de manutenções e nas listas de trabalho pendente
 
-#### Scenario: Identify upcoming and overdue work
-- **WHEN** a user views maintenance due dates
-- **THEN** the system SHALL distinguish upcoming work from overdue planned work using the planned date and exclude completed or canceled records
+#### Scenario: Identificar trabalhos próximos e atrasados
+- **QUANDO** um usuário consulta as datas previstas das manutenções
+- **ENTÃO** o sistema DEVE diferenciar os trabalhos próximos dos trabalhos planejados atrasados pela data planejada e excluir os registros concluídos ou cancelados
 
-#### Scenario: Due work excludes corrective maintenance
-- **WHEN** planned corrective and planned preventive maintenance are both dated before today
-- **THEN** only the preventive record SHALL appear as overdue, identically in the maintenance list, the dashboard, and the overdue report
+#### Scenario: Trabalho pendente não inclui manutenção corretiva
+- **QUANDO** uma manutenção corretiva planejada e uma preventiva planejada estão datadas antes de hoje
+- **ENTÃO** só o registro preventivo DEVE aparecer como atrasado, da mesma forma na lista de manutenções, no painel e no relatório de atrasadas
 
-#### Scenario: Recurrence suggests without scheduling
-- **WHEN** an authorized user completes preventive maintenance that has a recurrence interval
-- **THEN** the system SHALL return the suggested next planned date and SHALL NOT create a new maintenance record
+#### Scenario: A recorrência sugere sem agendar
+- **QUANDO** um usuário autorizado conclui uma manutenção preventiva que tem intervalo de recorrência
+- **ENTÃO** o sistema DEVE devolver a próxima data planejada sugerida e NÃO DEVE criar um novo registro de manutenção
 
-#### Scenario: Reject an assignee who cannot work on the area
-- **WHEN** a user assigns maintenance or an occurrence to a user whose role cannot work on that area
-- **THEN** the system SHALL reject the assignment and keep the current responsible user
+#### Scenario: Recusar um responsável que não pode atuar na área
+- **QUANDO** um usuário atribui uma manutenção ou ocorrência a um usuário cujo perfil não pode atuar nessa área
+- **ENTÃO** o sistema DEVE recusar a atribuição e manter o responsável atual
 
-### Requirement: Record corrective and preventive maintenance
-The system SHALL allow authorized users to track maintenance through `planned`, `in_progress`, `completed`, and `canceled` states, with a maintenance type of `preventive` or `corrective`. A maintenance record SHALL reference one equipment item and SHALL retain its planned date, actual start/completion dates, work performed, outcome, responsible user, and optional occurrence relationship as applicable. Completing maintenance SHALL require a completion date and work summary; canceling SHALL require a cancellation reason. Completed and canceled maintenance records SHALL remain in history. Corrective maintenance MAY reference the occurrence that prompted the work. Users limited to assigned work SHALL change only maintenance assigned to them.
+### Requirement: Registrar manutenções corretivas e preventivas
+O sistema DEVE permitir que usuários autorizados acompanhem as manutenções pelos estados `planned`, `in_progress`, `completed` e `canceled`, com tipo de manutenção `preventive` ou `corrective`. Um registro de manutenção DEVE referenciar um equipamento e DEVE guardar a data planejada, as datas reais de início/conclusão, o serviço executado, o resultado, o responsável e, quando houver, a ocorrência relacionada. Concluir uma manutenção DEVE exigir data de conclusão e resumo do serviço; cancelar DEVE exigir um motivo de cancelamento. Manutenções concluídas e canceladas DEVEM continuar no histórico. Uma manutenção corretiva PODE referenciar a ocorrência que motivou o serviço. Usuários limitados aos trabalhos atribuídos DEVEM alterar só as manutenções atribuídas a eles.
 
-#### Scenario: Complete maintenance with service details
-- **WHEN** an authorized user completes a maintenance record and supplies a completion date and work summary
-- **THEN** the system SHALL retain the completion details in the equipment history and update the equipment's derived last-maintenance date
+#### Scenario: Concluir uma manutenção com os detalhes do serviço
+- **QUANDO** um usuário autorizado conclui uma manutenção e informa a data de conclusão e o resumo do serviço
+- **ENTÃO** o sistema DEVE guardar os detalhes da conclusão no histórico do equipamento e atualizar a data derivada da última manutenção do equipamento
 
-#### Scenario: Reject incomplete completion or cancellation
-- **WHEN** a user attempts to complete maintenance without a completion date or work summary, or cancel it without a reason
-- **THEN** the system SHALL reject the transition and preserve the current maintenance state
+#### Scenario: Recusar conclusão ou cancelamento incompleto
+- **QUANDO** um usuário tenta concluir uma manutenção sem data de conclusão ou sem resumo do serviço, ou cancelá-la sem motivo
+- **ENTÃO** o sistema DEVE recusar a transição e manter o estado atual da manutenção
 
-#### Scenario: Maintain history after cancellation
-- **WHEN** a user cancels planned maintenance with a reason
-- **THEN** the system SHALL retain the canceled record and reason and SHALL exclude the record from future due-work calculations
+#### Scenario: Manter o histórico depois do cancelamento
+- **QUANDO** um usuário cancela uma manutenção planejada informando o motivo
+- **ENTÃO** o sistema DEVE guardar o registro cancelado e o motivo e DEVE excluir o registro dos cálculos futuros de trabalho pendente
 
-### Requirement: Register and resolve equipment occurrences
-The system SHALL allow authorized users to create an occurrence linked to one equipment item with a reported date, technical description, and severity. A reporter SHALL be recorded, and assignment to a responsible user, resolution date, resolution summary, and related maintenance MAY be recorded. Occurrence states SHALL include `open`, `in_progress`, `resolved`, and `canceled`. Resolution SHALL require a resolution date and summary; cancellation SHALL require a reason. Occurrences SHALL remain available in the equipment history after resolution or cancellation. A responsible user SHALL be an enabled user whose role can work on occurrences. From an open or in-progress occurrence, an authorized user SHALL be able to open a corrective maintenance form pre-filled with the corrective type and the occurrence's equipment, with the occurrence linked automatically.
+### Requirement: Registrar e resolver ocorrências dos equipamentos
+O sistema DEVE permitir que usuários autorizados criem uma ocorrência vinculada a um equipamento, com data do relato, descrição técnica e severidade. Quem relatou DEVE ser registrado, e a atribuição a um responsável, a data de resolução, o resumo da resolução e a manutenção relacionada PODEM ser registrados. Os estados da ocorrência DEVEM incluir `open`, `in_progress`, `resolved` e `canceled`. A resolução DEVE exigir data de resolução e resumo; o cancelamento DEVE exigir um motivo. As ocorrências DEVEM continuar disponíveis no histórico do equipamento depois de resolvidas ou canceladas. O responsável DEVE ser um usuário habilitado cujo perfil pode atuar em ocorrências. A partir de uma ocorrência aberta ou em andamento, um usuário autorizado DEVE poder abrir um formulário de manutenção corretiva já preenchido com o tipo corretivo e o equipamento da ocorrência, com a ocorrência vinculada automaticamente.
 
-#### Scenario: Report equipment occurrence
-- **WHEN** an authorized user reports an issue with valid equipment, date, technical description, and severity
-- **THEN** the system SHALL create an open occurrence associated with the equipment and reporting user
+#### Scenario: Relatar uma ocorrência de equipamento
+- **QUANDO** um usuário autorizado relata um problema com equipamento, data, descrição técnica e severidade válidos
+- **ENTÃO** o sistema DEVE criar uma ocorrência aberta associada ao equipamento e ao usuário que relatou
 
-#### Scenario: Resolve occurrence with outcome
-- **WHEN** an authorized user resolves an occurrence and records the resolution date and summary
-- **THEN** the system SHALL retain the resolution details and show the occurrence as resolved in the equipment history
+#### Scenario: Resolver uma ocorrência com o resultado
+- **QUANDO** um usuário autorizado resolve uma ocorrência e registra a data e o resumo da resolução
+- **ENTÃO** o sistema DEVE guardar os detalhes da resolução e mostrar a ocorrência como resolvida no histórico do equipamento
 
-#### Scenario: Reject incomplete resolution
-- **WHEN** a user attempts to resolve an occurrence without a resolution date or summary
-- **THEN** the system SHALL reject the state change and keep the occurrence open or in progress
+#### Scenario: Recusar uma resolução incompleta
+- **QUANDO** um usuário tenta resolver uma ocorrência sem data de resolução ou sem resumo
+- **ENTÃO** o sistema DEVE recusar a mudança de estado e manter a ocorrência aberta ou em andamento
 
-#### Scenario: Open corrective maintenance from an occurrence
-- **WHEN** an authorized user chooses to open corrective maintenance from an open occurrence and saves the form
-- **THEN** the system SHALL create corrective maintenance for the occurrence's equipment, linked to that occurrence, without the user entering the type, equipment, or occurrence
+#### Scenario: Abrir uma manutenção corretiva a partir de uma ocorrência
+- **QUANDO** um usuário autorizado escolhe abrir uma manutenção corretiva a partir de uma ocorrência aberta e salva o formulário
+- **ENTÃO** o sistema DEVE criar uma manutenção corretiva para o equipamento da ocorrência, vinculada a ela, sem o usuário digitar o tipo, o equipamento ou a ocorrência
 
-### Requirement: Provide complete equipment maintenance history
-The system SHALL provide a chronological (oldest first) equipment history containing maintenance records, occurrences, and component installation/removal events, with dates, types, states, responsible users, and recorded summaries where applicable. The system SHALL derive the last-maintenance date from the most recent completed maintenance record and SHALL show no date when there is no completed maintenance. History SHALL remain available for decommissioned equipment and SHALL not be altered by deleting a catalog entry or user. Maintenance that has not started SHALL be dated in the history by its planned calendar date.
+### Requirement: Oferecer o histórico completo de manutenção do equipamento
+O sistema DEVE oferecer um histórico cronológico do equipamento (mais antigos primeiro) com as manutenções, as ocorrências e os eventos de instalação/remoção de componentes, com datas, tipos, estados, responsáveis e resumos registrados, quando houver. O sistema DEVE derivar a data da última manutenção da manutenção concluída mais recente e NÃO DEVE mostrar data quando não houver manutenção concluída. O histórico DEVE continuar disponível para equipamentos descomissionados e NÃO DEVE ser alterado pela exclusão de um item de catálogo ou de um usuário. Uma manutenção que ainda não começou DEVE ser datada no histórico pela data planejada no calendário.
 
-#### Scenario: Review equipment history
-- **WHEN** an authorized user opens the history for equipment
-- **THEN** the system SHALL show its maintenance, occurrence, and component-change events in chronological order, including completed and canceled records
+#### Scenario: Consultar o histórico do equipamento
+- **QUANDO** um usuário autorizado abre o histórico de um equipamento
+- **ENTÃO** o sistema DEVE mostrar os eventos de manutenção, ocorrência e troca de componentes em ordem cronológica, inclusive os registros concluídos e cancelados
 
-#### Scenario: Derive maintenance dates
-- **WHEN** an authorized user views equipment with completed and planned maintenance
-- **THEN** the system SHALL show the latest completed date as last maintenance and the earliest future planned preventive date as next maintenance
+#### Scenario: Derivar as datas de manutenção
+- **QUANDO** um usuário autorizado consulta um equipamento com manutenções concluídas e planejadas
+- **ENTÃO** o sistema DEVE mostrar a data concluída mais recente como última manutenção e a data preventiva planejada futura mais próxima como próxima manutenção

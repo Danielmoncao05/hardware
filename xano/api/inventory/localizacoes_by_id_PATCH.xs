@@ -1,6 +1,6 @@
-// Updates, re-parents, or activates/deactivates a location (inventory.manage).
-// Send parent_id = 0 to make it a top-level location; "" clears tipo/descricao.
-// A new parent must be active and must not be the location itself or one of its descendants.
+// Atualiza, muda a localização superior ou ativa/desativa uma localização (inventory.manage).
+// Envie parent_id = 0 para torná-la de nível principal; "" limpa tipo/descricao.
+// A nova localização superior precisa estar ativa e não pode ser a própria localização nem uma descendente dela.
 query "localizacoes/{localizacao_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"
@@ -66,7 +66,7 @@ query "localizacoes/{localizacao_id}" verb=PATCH {
               error = "parent_id must reference an active location."
             }
 
-            // Walk up from the new parent; reaching this location would create a cycle
+            // Sobe a partir da nova localização superior; chegar a esta localização criaria um ciclo
             var $cursor {
               value = $input.parent_id
             }

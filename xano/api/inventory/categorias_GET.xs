@@ -1,4 +1,4 @@
-// Lists equipment categories (operational.read). Inactive ones are hidden unless include_inactive is true.
+// Lista as categorias de equipamento (operational.read). As inativas ficam ocultas, a menos que include_inactive seja true.
 query categorias verb=GET {
   api_group = "Inventory"
   auth = "user"

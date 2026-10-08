@@ -1,8 +1,8 @@
-"""Session and permission state shared by every page.
+"""Estado de sessão e permissões compartilhado por todas as páginas.
 
-The Xano auth token lives only in the backend-only var `_token`: Reflex never sends
-underscore vars to the browser. Permission flags below only decide which controls are
-shown; the API re-checks every operation.
+O token de autenticação do Xano fica só na var exclusiva do backend `_token`: o Reflex nunca envia
+vars com sublinhado ao navegador. As flags de permissão abaixo só decidem quais controles são
+mostrados; a API verifica de novo toda operação.
 """
 
 from typing import Any
@@ -20,14 +20,14 @@ class AuthState(rx.State):
     user_email: str = ""
     role: str = ""
     permissions: list[str] = []
-    # Account created with a temporary password: the user must replace it before using the system.
-    # The API grants no permissions meanwhile; this flag only routes the UI to /trocar-senha.
+    # Conta criada com senha temporária: o usuário precisa trocá-la antes de usar o sistema.
+    # Enquanto isso a API não concede permissões; esta flag só direciona a interface para /trocar-senha.
     must_change_password: bool = False
 
     login_error: str = ""
     login_loading: bool = False
 
-    # ---- permission flags (UI only) ----
+    # ---- flags de permissão (só para a interface) ----
     @rx.var
     def logged_in(self) -> bool:
         return self.user_id != 0
@@ -72,9 +72,9 @@ class AuthState(rx.State):
     def can_manage_users(self) -> bool:
         return "users.manage" in self.permissions
 
-    # ---- API helpers for subclasses ----
+    # ---- auxiliares de API para as subclasses ----
     async def call(self, method: str, group: str, path: str, **kwargs) -> Any:
-        """Call the API with the session token. A 401 clears the session."""
+        """Chama a API com o token da sessão. Um 401 encerra a sessão."""
         try:
             return await api.request(method, group, path, token=self._token, **kwargs)
         except api.ApiError as err:
@@ -100,7 +100,7 @@ class AuthState(rx.State):
         self.permissions = me.get("permissions") or []
         self.must_change_password = bool(me.get("deve_trocar_senha"))
 
-    # ---- events ----
+    # ---- eventos ----
     @rx.event
     async def login(self, form: dict):
         self.login_error = ""
@@ -129,9 +129,9 @@ class AuthState(rx.State):
         return rx.redirect("/login")
 
     async def _guard(self, *permissions: str) -> list | None:
-        """Page on_load guard. Refreshes the profile (so role, permission, or enabled-state
-        changes apply immediately) and returns redirect events when the session is missing or
-        none of the given permissions is held; returns None when the page may load."""
+        """Guard do on_load das páginas. Atualiza o perfil (para mudanças de perfil, permissão ou
+        habilitação valerem na hora) e devolve eventos de redirecionamento quando não há sessão ou
+        nenhuma das permissões informadas é concedida; devolve None quando a página pode carregar."""
         if not self._token:
             self._clear_session()
             return [rx.redirect("/login")]
@@ -141,15 +141,15 @@ class AuthState(rx.State):
             self._clear_session()
             return [rx.redirect("/login")]
         if self.must_change_password:
-            # Temporary password still in place: nothing else is usable until it is replaced
+            # Senha temporária ainda ativa: nada mais pode ser usado até ela ser trocada
             return [rx.redirect("/trocar-senha")]
         if permissions and not any(p in self.permissions for p in permissions):
-            # Never redirect to another guarded page (e.g. "/"): that loops when it is denied too
+            # Nunca redirecionar para outra página protegida (ex.: "/"): isso entra em loop quando ela também é negada
             return [rx.redirect("/sem-acesso")]
         return None
 
     async def _fetch_all(self, group: str, path: str, params: dict | None = None, page_size: int = 200, limit: int = 5000) -> list[dict]:
-        """Follow pagination until the last page (bounded by limit) so option lists are complete."""
+        """Segue a paginação até a última página (com limite) para as listas de opções ficarem completas."""
         items: list[dict] = []
         page = 1
         while len(items) < limit:

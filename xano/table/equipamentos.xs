@@ -1,5 +1,5 @@
-// Equipment inventory. Manufacturer and category are derived through modelo_id, never stored here.
-// numero_serie is unique when present; the API stores blank serials as null.
+// Inventário de equipamentos. Fabricante e categoria são derivados por modelo_id, nunca gravados aqui.
+// numero_serie é único quando informado; a API grava séries em branco como null.
 table equipamentos {
   auth = false
 

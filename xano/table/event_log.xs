@@ -1,4 +1,4 @@
-// Stores logs of user activities and events within the application.
+// Guarda os logs de atividades e eventos dos usuários no aplicativo.
 table event_log {
   auth = false
 
@@ -6,16 +6,16 @@ table event_log {
     int id
     timestamp created_at?=now
   
-    // Reference to the user who performed the action.
+    // Referência ao usuário que executou a ação.
     int user_id? {
       table = "user"
     }
   
-    // A description of the action performed by the user (e.g., 'login', 'created_invoice', 'updated_profile').
+    // Descrição da ação executada pelo usuário (ex.: 'login', 'created_invoice', 'updated_profile').
     text action? filters=trim
   
-    // Additional data related to the event, such as resource IDs, old/new values, or other contextual information.
-    // Domain audit events (hhm/audit) store {entidade, registro_id, antes, depois}. Never store credentials here.
+    // Dados adicionais do evento, como IDs de recursos, valores antigos/novos ou outras informações de contexto.
+    // Eventos de auditoria do domínio (hhm/audit) guardam {entidade, registro_id, antes, depois}. Nunca guarde credenciais aqui.
     json metadata?
   }
 

@@ -1,5 +1,5 @@
-// Normalizes blank optional text to null. Required for optional unique columns such as
-// equipamentos.numero_serie: the datastore treats "" as a real value (validation.md #6).
+// Converte texto opcional em branco para null. Necessário para colunas opcionais únicas como
+// equipamentos.numero_serie: o banco trata "" como um valor real (validation.md #6).
 function "hhm/blank_to_null" {
   input {
     text? value?

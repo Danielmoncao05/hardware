@@ -1,4 +1,4 @@
-// Access roles: administrator, asset_manager, technician, viewer.
+// Perfis de acesso: administrator, asset_manager, technician, viewer.
 table roles {
   auth = false
 

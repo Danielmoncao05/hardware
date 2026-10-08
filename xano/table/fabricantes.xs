@@ -1,4 +1,4 @@
-// Equipment and component manufacturers. Deactivate instead of deleting once referenced.
+// Fabricantes de equipamentos e componentes. Depois de referenciado, desative em vez de apagar.
 table fabricantes {
   auth = false
 

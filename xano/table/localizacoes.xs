@@ -1,4 +1,4 @@
-// Physical locations, optionally nested through parent_id (e.g. building > floor > room).
+// Localizações físicas, opcionalmente aninhadas por parent_id (ex.: prédio > andar > sala).
 table localizacoes {
   auth = false
 

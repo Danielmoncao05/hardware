@@ -1,7 +1,7 @@
-// Sends a transactional email through the configured email service (Resend, the only external
-// provider util.send_email supports; the built-in "xano" provider only reaches the workspace owner).
-// Environment: RESEND_API_KEY (secret) and HHM_EMAIL_FROM (a sender on a domain verified in Resend).
-// Fails closed: without configuration it throws instead of silently not sending.
+// Envia um e-mail transacional pelo serviço de e-mail configurado (Resend, o único provedor externo
+// que util.send_email suporta; o provedor "xano" embutido só chega ao dono do workspace).
+// Ambiente: RESEND_API_KEY (segredo) e HHM_EMAIL_FROM (um remetente em um domínio verificado no Resend).
+// Falha de forma segura: sem configuração, lança erro em vez de deixar de enviar sem avisar.
 function "hhm/send_email" {
   input {
     email to

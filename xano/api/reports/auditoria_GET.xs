@@ -1,5 +1,5 @@
-// Audit log (audit.read, administrators only). Read-only: no endpoint edits or deletes audit events.
-// Filter by actor, action, affected entity/record, and date range.
+// Log de auditoria (audit.read, só administradores). Somente leitura: nenhum endpoint edita ou apaga eventos de auditoria.
+// Filtros por autor, ação, entidade/registro afetado e período.
 query auditoria verb=GET {
   api_group = "Reports"
   auth = "user"
@@ -20,7 +20,7 @@ query auditoria verb=GET {
       input = {user_id: $auth.id, permission: "audit.read"}
     }
 
-    // JSON containment has no null-safe form, so build the metadata filter only from given values
+    // A comparação de contenção em JSON não tem forma segura para null, então o filtro de metadata é montado só com os valores informados
     var $meta {
       value = {}
     }
@@ -45,8 +45,8 @@ query auditoria verb=GET {
       value = $input.action == "" ? null : $input.action
     }
 
-    // Apply the metadata containment only when an entity/record filter is given: "metadata @> {}" would
-    // silently drop every event whose metadata is null (e.g. events logged without details).
+    // Só aplica a contenção de metadata quando há filtro de entidade/registro: "metadata @> {}" descartaria
+    // silenciosamente todo evento com metadata nula (ex.: eventos registrados sem detalhes).
     var $items {
       value = null
     }

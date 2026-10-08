@@ -1,4 +1,4 @@
-// Throws inputerror unless the user exists and is enabled (for assigning responsible users).
+// Lança inputerror se o usuário não existir ou não estiver habilitado (para atribuir responsáveis).
 function "hhm/require_active_user" {
   input {
     int user_id

@@ -1,4 +1,4 @@
-"""Loads select options (locations, models, users, ...) shared by several pages."""
+"""Carrega as opções dos selects (localizações, modelos, usuários, ...) compartilhadas por várias páginas."""
 
 import datetime as dt
 import os
@@ -16,18 +16,18 @@ class OptionsState(AuthState):
     fabricantes: list[dict] = []
     modelos: list[dict] = []
     componentes: list[dict] = []
-    # Assignable users, per area (only users whose role can work on that area)
+    # Usuários atribuíveis, por área (só usuários cujo perfil pode atuar nessa área)
     responsaveis_manutencao: list[dict] = []
     responsaveis_ocorrencia: list[dict] = []
 
-    # Equipment is too large for a fixed option list (up to 10,000+): forms search it instead
+    # Há equipamentos demais para uma lista fixa de opções (10.000+): os formulários fazem busca
     equip_query: str = ""
     equip_options: list[dict] = []
     equip_searching: bool = False
 
     async def _load_options(self, *kinds: str):
-        """Fetch active options as [{value, label}] lists, following pagination so no option is cut off.
-        Errors leave the lists empty."""
+        """Busca as opções ativas como listas [{value, label}], seguindo a paginação para nenhuma opção ficar de fora.
+        Em caso de erro, as listas ficam vazias."""
         try:
             if "localizacoes" in kinds:
                 rows = await self.call("GET", "inventory", "localizacoes")
@@ -57,8 +57,8 @@ class OptionsState(AuthState):
             pass
 
     async def _search_equipment(self, query: str = "", preselect_id: str = ""):
-        """Search active equipment by name, asset or serial number (first 25 matches).
-        preselect_id keeps a pre-filtered equipment item selectable even when it is not in the results."""
+        """Busca equipamentos ativos por nome, patrimônio ou número de série (primeiros 25 resultados).
+        preselect_id mantém selecionável um equipamento pré-filtrado mesmo que ele não esteja nos resultados."""
         self.equip_searching = True
         try:
             page = await self.call("GET", "inventory", "equipamentos", params={"q": query.strip() or None, "per_page": 25})
@@ -77,7 +77,7 @@ class OptionsState(AuthState):
 
     @rx.event
     async def search_equipment(self, value: str):
-        """Debounced search-as-you-type (no Enter key needed, so it never submits the surrounding form)."""
+        """Busca enquanto digita, com debounce (dispensa o Enter, então nunca envia o formulário em volta)."""
         self.equip_query = value
         await self._search_equipment(value)
 
@@ -97,18 +97,18 @@ def to_float(value) -> float | None:
 
 
 def opt_text(value) -> str | None:
-    """Form text -> API value: blank becomes None (not sent)."""
+    """Texto do formulário -> valor da API: vazio vira None (não é enviado)."""
     value = (value or "").strip()
     return value or None
 
 
-# Wall-clock times typed by users are interpreted (and shown) in the institution's timezone
+# Horários digitados pelos usuários são interpretados (e exibidos) no fuso da instituição
 TZ_NAME = os.environ.get("HHM_TIMEZONE", "America/Sao_Paulo")
 TZ = ZoneInfo(TZ_NAME)
 
 
 def local_to_ms(value: str) -> int | None:
-    """datetime-local form value (institution wall time) -> epoch ms."""
+    """Valor de um campo datetime-local (horário local da instituição) -> epoch em ms."""
     if not value:
         return None
     try:
@@ -118,7 +118,7 @@ def local_to_ms(value: str) -> int | None:
 
 
 def now_local_input() -> str:
-    """Current institution time formatted for a datetime-local input."""
+    """Horário atual da instituição, formatado para um campo datetime-local."""
     return dt.datetime.now(TZ).strftime("%Y-%m-%dT%H:%M")
 
 

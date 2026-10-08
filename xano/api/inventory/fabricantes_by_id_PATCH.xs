@@ -1,5 +1,5 @@
-// Updates or activates/deactivates a manufacturer (inventory.manage). Send "" to clear an optional field.
-// Deactivation keeps every historical reference and blocks new models/components from using it.
+// Atualiza ou ativa/desativa um fabricante (inventory.manage). Envie "" para limpar um campo opcional.
+// Desativar mantém todas as referências históricas e impede novos modelos/componentes de usá-lo.
 query "fabricantes/{fabricante_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"

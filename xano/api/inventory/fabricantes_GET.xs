@@ -1,4 +1,4 @@
-// Lists manufacturers (operational.read). Inactive ones are hidden unless include_inactive is true.
+// Lista os fabricantes (operational.read). Os inativos ficam ocultos, a menos que include_inactive seja true.
 query fabricantes verb=GET {
   api_group = "Inventory"
   auth = "user"

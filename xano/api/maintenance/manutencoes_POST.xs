@@ -1,9 +1,9 @@
-// Schedules preventive or registers corrective maintenance in the "planned" state.
-// maintenance.manage may create any record. A technician (maintenance.manage_assigned) may create
-// corrective maintenance for an occurrence assigned to them, with themselves as responsible.
-// Equipment must exist and not be decommissioned; the responsible user must be enabled and able to work
-// on maintenance (maintenance.manage or maintenance.manage_assigned);
-// a linked occurrence must belong to the same equipment and only corrective work may link one.
+// Agenda manutenção preventiva ou registra corretiva no estado "planned".
+// maintenance.manage pode criar qualquer registro. Um técnico (maintenance.manage_assigned) pode criar
+// manutenção corretiva para uma ocorrência atribuída a ele, com ele mesmo como responsável.
+// O equipamento precisa existir e não estar descomissionado; o responsável precisa estar habilitado e poder atuar
+// em manutenções (maintenance.manage ou maintenance.manage_assigned);
+// uma ocorrência vinculada precisa ser do mesmo equipamento, e só manutenção corretiva pode ter vínculo.
 query manutencoes verb=POST {
   api_group = "Maintenance"
   auth = "user"

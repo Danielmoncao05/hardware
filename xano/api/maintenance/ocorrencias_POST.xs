@@ -1,6 +1,6 @@
-// Reports an equipment occurrence (occurrence.report). Creates it as "open" with the caller as reporter.
-// descricao_tecnica describes equipment behavior only: no patient or clinical information.
-// Assigning a responsible user at creation requires occurrence.manage.
+// Registra uma ocorrência de equipamento (occurrence.report). Cria como "open", com quem chama como relator.
+// descricao_tecnica descreve só o comportamento do equipamento: nada de informações de pacientes ou clínicas.
+// Atribuir um responsável no cadastro exige occurrence.manage.
 query ocorrencias verb=POST {
   api_group = "Maintenance"
   auth = "user"

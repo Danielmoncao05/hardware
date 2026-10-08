@@ -1,4 +1,4 @@
-// Lists roles with their granted permission keys, plus the full permission catalog (users.manage).
+// Lista os perfis com as chaves de permissão concedidas, mais o catálogo completo de permissões (users.manage).
 query roles verb=GET {
   api_group = "Users"
   auth = "user"

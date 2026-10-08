@@ -1,10 +1,10 @@
-// planned/in_progress -> completed. Requires a completion date (not in the future, not before the start)
-// and a work summary; otherwise the state is left unchanged. Optionally sets the equipment status
-// afterwards (e.g. back to operational). For recurring preventive work, the response includes the
-// suggested next planned date (data_planejada + interval); scheduling it is a separate POST manutencoes.
-// Setting the equipment status (status_equipamento) requires inventory.manage (decision 20); without it
-// the whole request is refused, so nothing is half-applied. Setting it to out_of_service requires
-// motivo_status, the same reason rule as the status endpoint.
+// planned/in_progress -> completed. Exige data de conclusão (não futura, não anterior ao início)
+// e um resumo do serviço; caso contrário, o estado não muda. Opcionalmente define o status do equipamento
+// depois (ex.: de volta a operacional). Para preventivas recorrentes, a resposta traz a
+// próxima data planejada sugerida (data_planejada + intervalo); agendá-la é um POST manutencoes separado.
+// Definir o status do equipamento (status_equipamento) exige inventory.manage (decisão 20); sem isso
+// a requisição inteira é recusada, para nada ficar aplicado pela metade. Definir como out_of_service exige
+// motivo_status, a mesma regra de motivo do endpoint de status.
 query "manutencoes/{manutencao_id}/concluir" verb=POST {
   api_group = "Maintenance"
   auth = "user"
@@ -36,7 +36,7 @@ query "manutencoes/{manutencao_id}/concluir" verb=POST {
       input = {user_id: $auth.id, area: "maintenance", responsavel_id: $before.responsavel_id}
     }
 
-    // Equipment status changes need inventory.manage, also when requested through maintenance
+    // Mudar o status do equipamento exige inventory.manage, inclusive quando pedido pela manutenção
     conditional {
       if ($input.status_equipamento != null) {
         function.run "hhm/require_permission" {

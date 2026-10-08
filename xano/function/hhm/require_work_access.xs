@@ -1,7 +1,7 @@
-// Authorizes changes to a maintenance or occurrence record. Allowed when the user holds the
-// "<area>.manage" permission, or holds "<area>.manage_assigned" and is the record's responsible user
-// (technicians work only on what is assigned to them). area is "maintenance" or "occurrence".
-// Returns true when access came from the full manage permission, false for assigned-only access.
+// Autoriza mudanças em um registro de manutenção ou ocorrência. Permitido quando o usuário tem a
+// permissão "<area>.manage", ou tem "<area>.manage_assigned" e é o responsável pelo registro
+// (técnicos só atuam no que foi atribuído a eles). area é "maintenance" ou "occurrence".
+// Devolve true quando o acesso veio da permissão manage completa, false para acesso só aos atribuídos.
 function "hhm/require_work_access" {
   input {
     int user_id

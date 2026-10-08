@@ -1,4 +1,4 @@
-// Role grants. Xano requires an id primary key, so the (role_id, permission_id) pair is unique-indexed.
+// Concessões dos perfis. O Xano exige uma chave primária id, então o par (role_id, permission_id) tem índice único.
 table role_permissions {
   auth = false
 

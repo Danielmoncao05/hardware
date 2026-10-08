@@ -1,105 +1,110 @@
-# Operations: hosting, deployment, backup, recovery, rollback
+# Operação: hospedagem, implantação, backup, recuperação e rollback
 
-Runbook for one institution's deployment of the equipment-management application
-(Reflex frontend + Xano API/database). One deployment = one institution's data.
+Roteiro de operação para a implantação do sistema de gestão de equipamentos em uma instituição
+(frontend Reflex + API/banco de dados Xano). Uma implantação = os dados de uma instituição.
 
-## 1. Decisions still open (owner: project lead)
+## 1. Decisões ainda em aberto (responsável: líder do projeto)
 
-These are deployment decisions from `design.md` → Open Questions. Recommended values are proposals,
-not commitments; record the agreed value and date here before production.
+Estas são decisões de implantação vindas de `design.md` → Questões em aberto. Os valores recomendados são propostas,
+não compromissos; registre aqui o valor combinado e a data antes de entrar em produção.
 
-| Decision | Recommendation | Agreed value |
+| Decisão | Recomendação | Valor combinado |
 |---|---|---|
-| Xano plan | A paid plan with a non-live branch, sandbox/tenant environments, and managed backups. The Free plan used during development has no sandbox, so every test touches live data (see `openspec/changes/hospital-hardware-manager/validation.md`). | _TBD_ |
-| Frontend hosting | Reflex Cloud, or any container host running `reflex run --env prod` behind HTTPS, in the same region as the Xano instance. | _TBD_ |
-| Recovery point objective (RPO) | ≤ 24 h (daily backups); ≤ 1 h if the plan offers point-in-time recovery. | _TBD_ |
-| Recovery time objective (RTO) | ≤ 4 h during business hours. | _TBD_ |
-| Backup retention | Daily backups kept 30 days, plus monthly backups kept 12 months. | _TBD_ |
-| Audit log retention | Same as the equipment records (never purged by the application). | _TBD_ |
-| Email provider for password reset | Decided: an external email service. XanoScript's `util.send_email` supports only `resend` besides the owner-only `xano` provider, so the code uses Resend: create the account, verify the sender domain, and set the variables in section 2. A plain SMTP server would need a relay in front of it. | Resend (2026-10-08) |
+| Plano do Xano | Um plano pago com branch que não seja o live, ambientes de sandbox/tenant e backups gerenciados. O plano Free usado no desenvolvimento não tem sandbox, então todo teste mexe nos dados reais (ver `openspec/changes/hospital-hardware-manager/validation.md`). | _A definir_ |
+| Hospedagem do frontend | Reflex Cloud, ou qualquer host de contêiner rodando `reflex run --env prod` atrás de HTTPS, na mesma região da instância do Xano. | _A definir_ |
+| Objetivo de ponto de recuperação (RPO) | ≤ 24 h (backups diários); ≤ 1 h se o plano oferecer recuperação para um ponto no tempo. | _A definir_ |
+| Objetivo de tempo de recuperação (RTO) | ≤ 4 h em horário comercial. | _A definir_ |
+| Retenção de backups | Backups diários guardados por 30 dias, mais backups mensais guardados por 12 meses. | _A definir_ |
+| Retenção do log de auditoria | A mesma dos registros de equipamentos (o aplicativo nunca apaga). | _A definir_ |
+| Provedor de e-mail para redefinição de senha | Decidido: um serviço de e-mail externo. O `util.send_email` do XanoScript só suporta `resend`, além do provedor `xano`, que só envia para o dono do workspace; por isso o código usa o Resend: crie a conta, verifique o domínio do remetente e defina as variáveis da seção 2. Um servidor SMTP comum precisaria de um relay na frente. | Resend (2026-10-08) |
 
-## 2. Environments and configuration
+## 2. Ambientes e configuração
 
-| Setting | Where | Purpose |
+| Configuração | Onde | Finalidade |
 |---|---|---|
-| `HHM_APP_URL` | Xano environment variable | Production URL of the frontend, used in password-reset links (`/reset-password` page). |
-| `RESEND_API_KEY` | Xano environment variable (secret) | Email service API key for reset and welcome emails. |
-| `HHM_EMAIL_FROM` | Xano environment variable | Sender address on a domain verified in the email service. |
+| `HHM_APP_URL` | Variável de ambiente do Xano | URL de produção do frontend, usada nos links de redefinição de senha (página `/reset-password`). |
+| `RESEND_API_KEY` | Variável de ambiente do Xano (segredo) | Chave da API do serviço de e-mail, para os e-mails de redefinição e de boas-vindas. |
+| `HHM_EMAIL_FROM` | Variável de ambiente do Xano | Endereço do remetente, em um domínio verificado no serviço de e-mail. |
+| `XANO_BASE_URL` | Ambiente do frontend | URL da instância do Xano. |
+| `XANO_*_GROUP` | Ambiente do frontend (opcional) | Identificadores dos grupos de API; os padrões batem com `xano/api/*/api_group.xs`. |
+| `HHM_TIMEZONE` | Ambiente do frontend | Fuso horário da instituição para horários digitados e exibidos (padrão `America/Sao_Paulo`). |
 
-Password recovery fails closed: until these three are set, `reset/request-reset-link` returns an error for
-every request (it never reveals whether an email exists) and no email is sent.
-| `XANO_BASE_URL` | Frontend environment | Xano instance URL. |
-| `XANO_*_GROUP` | Frontend environment (optional) | API group canonicals; defaults match `xano/api/*/api_group.xs`. |
-| `HHM_TIMEZONE` | Frontend environment | Institution timezone for entered/displayed times (default `America/Sao_Paulo`). |
+A recuperação de senha falha de forma segura: enquanto `HHM_APP_URL`, `RESEND_API_KEY` e `HHM_EMAIL_FROM`
+não estiverem definidas, `reset/request-reset-link` devolve erro em toda requisição (sem nunca revelar se um
+e-mail existe) e nenhum e-mail é enviado.
 
-The frontend holds the Xano auth token only in backend (server) state; nothing secret is sent to the
-browser. Serve the frontend over HTTPS only; Xano endpoints are HTTPS by default.
+O frontend guarda o token de autenticação do Xano só no estado do backend (servidor); nada secreto é enviado ao
+navegador. Sirva o frontend somente por HTTPS; os endpoints do Xano já usam HTTPS por padrão.
 
-**Session state and scaling.** Reflex keeps that state in the app process's memory by default. With a
-single process, a restart only logs everyone out. To run more than one process or worker (or to survive
-restarts), configure Redis for Reflex state (`REFLEX_REDIS_URL`, i.e. `redis_url` in `rxconfig.py`);
-otherwise users are logged out whenever a request reaches a different process.
+**Estado de sessão e escala.** Por padrão, o Reflex mantém esse estado na memória do processo do app. Com um
+único processo, um reinício só desconecta todo mundo. Para rodar mais de um processo ou worker (ou para
+sobreviver a reinícios), configure o Redis para o estado do Reflex (`REFLEX_REDIS_URL`, ou seja, `redis_url` no
+`rxconfig.py`); caso contrário, os usuários são desconectados sempre que uma requisição cai em outro processo.
 
-## 3. First deployment
+**Limite de requisições.** O plano Free do Xano aceita 10 requisições a cada 20 segundos. O frontend espera e
+tenta de novo quando recebe HTTP 429, mas várias telas abertas ou recarregadas seguidamente ainda podem
+estourar o limite. Em produção, use um plano pago.
 
-**Maintenance window.** Between the push (step 4) and the setup command (step 6), every existing
-account is locked out: login and all permission checks require `ativo = true` and a role, which only the
-migration assigns. Announce a short window and run steps 4–6 back to back.
+## 3. Primeira implantação
 
-1. **Announce** the maintenance window to current users.
-2. **Snapshot.** Take a backup/export of the Xano workspace (dashboard backup, or `xano workspace pull` into a dated folder outside the repo) and record its identifier.
-3. **Dry run.** From `xano/`: `xano workspace push -d . --dry-run`. Confirm the preview only creates the domain tables, functions, and API groups, and updates the auth endpoints, `user`, and `event_log`. It must show no deletes.
-4. **Push.** Run `xano workspace push -d .`. The push is additive and wrapped in a transaction by default; do not use `--no-transaction`, `--truncate`, `--sync --delete`, or `--records`.
-5. **Set `HHM_APP_URL`, `RESEND_API_KEY` and `HHM_EMAIL_FROM`** in the Xano environment.
-6. **Seed and migrate, immediately:** `xano function run "setup/run_deployment_setup"`. It seeds reference data (expect `categorias: 12, roles: 4, permissions: 10, role_permissions: 21, divergencias: []`), refuses to continue if the role grants differ from the approved matrix, then migrates accounts: every former `admin` becomes `administrator`, every other account becomes `viewer` with `needs_review: true`. Confirm `without_role: 0`. Finally it blanks the password hash and hashed reset token that the old quick-start endpoints wrote into audit events (events are kept, see `scrub.eventos_corrigidos`).
-7. **Review accounts:** an administrator reviews and reassigns the `needs_review` accounts in **Usuários e perfis** before go-live.
-   Accounts that existed before this release keep their passwords. New accounts are created with a temporary
-   password, delivered to the user over a separate secure channel, and must be changed on first login.
-   Administrators cannot reset existing passwords; users who forget theirs use **Esqueci minha senha**.
-8. **Verify:** run `pytest tests/test_no_clinical_data.py`. Against a test deployment (not production), also run `pytest tests/test_api_integration.py` and `python tests/perf/inventory_list_p95.py`, and record the results in `validation.md`.
-9. **Deploy the frontend:** `pip install -r requirements.txt`, then `reflex run --env prod` (or the host's equivalent), with the environment from section 2.
-10. **Smoke test** with one account per role: login, dashboard, equipment list, a denied action as viewer; create one new account and confirm the first login forces a password change. End the maintenance window.
+**Janela de manutenção.** Entre o push (passo 4) e o comando de setup (passo 6), todas as contas existentes
+ficam bloqueadas: o login e todas as verificações de permissão exigem `ativo = true` e um perfil, que só a
+migração atribui. Avise sobre uma janela curta e rode os passos 4 a 6 em seguida.
 
-The legacy quick-start function `Quick Start/enforce_role` was removed from the local sources; an additive
-push does not delete it from the workspace, so delete it in the Xano dashboard (nothing calls it).
+1. **Avise** os usuários atuais sobre a janela de manutenção.
+2. **Snapshot.** Faça um backup/exportação do workspace do Xano (backup pelo painel, ou `xano workspace pull` para uma pasta datada fora do repositório) e anote o identificador.
+3. **Simulação.** A partir de `xano/`: `xano workspace push -d . --dry-run`. Confirme que a prévia só cria as tabelas, funções e grupos de API do domínio, e atualiza os endpoints de autenticação, `user` e `event_log`. Não pode aparecer nenhuma exclusão.
+4. **Push.** Rode `xano workspace push -d .`. O push só adiciona e roda em uma transação por padrão; não use `--no-transaction`, `--truncate`, `--sync --delete` nem `--records`.
+5. **Defina `HHM_APP_URL`, `RESEND_API_KEY` e `HHM_EMAIL_FROM`** no ambiente do Xano.
+6. **Seed e migração, logo em seguida:** `xano function run "setup/run_deployment_setup"`. Ele cria os dados de referência (espere `categorias: 12, roles: 4, permissions: 10, role_permissions: 21, divergencias: []`), se recusa a continuar se as concessões dos perfis forem diferentes da matriz aprovada e depois migra as contas: todo antigo `admin` vira `administrator` e as demais contas viram `viewer` com `needs_review: true`. Confirme `without_role: 0`. Por fim, apaga o hash da senha e o hash do token de redefinição que os endpoints antigos do quick-start gravaram nos eventos de auditoria (os eventos são mantidos; ver `scrub.eventos_corrigidos`).
+7. **Revise as contas:** um administrador revisa e reatribui as contas `needs_review` em **Usuários e perfis** antes de entrar em produção.
+   As contas que existiam antes desta versão mantêm as senhas. Contas novas são criadas com senha
+   temporária, entregue ao usuário por um canal seguro separado, e precisam ser trocadas no primeiro acesso.
+   Administradores não conseguem redefinir senhas existentes; quem esquecer a sua usa **Esqueci minha senha**.
+8. **Verifique:** rode `pytest tests/test_no_clinical_data.py`. Em um ambiente de teste (não em produção), rode também `pytest tests/test_api_integration.py` e `python tests/perf/inventory_list_p95.py`, e registre os resultados em `validation.md`.
+9. **Publique o frontend:** `pip install -r requirements.txt` e depois `reflex run --env prod` (ou o equivalente do host), com o ambiente da seção 2.
+10. **Teste rápido** com uma conta de cada perfil: login, painel, lista de equipamentos e uma ação negada como viewer; crie uma conta nova e confirme que o primeiro acesso obriga a troca de senha. Encerre a janela de manutenção.
 
-## 4. Routine releases
+A função legada do quick-start `Quick Start/enforce_role` foi removida dos fontes locais; um push que só adiciona
+não a apaga do workspace, então apague-a pelo painel do Xano (nada a chama).
 
-1. Back up (section 3, step 2).
-2. Run `xano workspace push --dry-run` and review it. Any `DELETE` or field type change needs explicit approval and a forward-repair plan.
-3. Push the backend first, then deploy the frontend (the API stays backward compatible within a release).
-4. Run the smoke test; check `reflex.log` and Xano request history for errors.
+## 4. Versões de rotina
+
+1. Faça backup (seção 3, passo 2).
+2. Rode `xano workspace push --dry-run` e revise a prévia. Qualquer `DELETE` ou mudança de tipo de campo precisa de aprovação explícita e de um plano de correção para a frente.
+3. Publique o backend primeiro e depois o frontend (a API continua compatível com a versão anterior dentro de uma versão).
+4. Faça o teste rápido; procure erros no `reflex.log` e no histórico de requisições do Xano.
 
 ## 5. Backup
 
-- Managed backups per the plan chosen in section 1, on the agreed schedule and retention.
-- After each release, and at least monthly, pull a logical export of the workspace definitions (`xano workspace pull`) into versioned storage outside the application host.
-- Backups contain operational equipment data, user names/emails, and audit history. Store them encrypted, with administrator-only access.
+- Backups gerenciados conforme o plano escolhido na seção 1, com a frequência e a retenção combinadas.
+- Depois de cada versão, e pelo menos uma vez por mês, exporte as definições do workspace (`xano workspace pull`) para um armazenamento versionado fora do host do aplicativo.
+- Os backups contêm dados operacionais dos equipamentos, nomes/e-mails dos usuários e o histórico de auditoria. Guarde-os criptografados, com acesso só para administradores.
 
-## 6. Recovery (data loss or corruption)
+## 6. Recuperação (perda ou corrupção de dados)
 
-1. Disable user access: set the API groups `Inventory`, `Maintenance`, `Reports`, `Users` to `active = false`, or stop the frontend.
-2. Identify the last good backup within the RPO.
-3. Restore it into a **non-live** environment first (tenant/branch, per plan) and verify record counts for `user`, `equipamentos`, `manutencoes`, `ocorrencias`, `event_log`, and a sample equipment history.
-4. Promote/restore to live, re-enable access, and record the incident, data-loss window, and timings against the RPO/RTO.
+1. Bloqueie o acesso dos usuários: coloque os grupos de API `Inventory`, `Maintenance`, `Reports` e `Users` como `active = false`, ou pare o frontend.
+2. Identifique o último backup bom dentro do RPO.
+3. Restaure primeiro em um ambiente **que não seja o live** (tenant/branch, conforme o plano) e confira as contagens de `user`, `equipamentos`, `manutencoes`, `ocorrencias`, `event_log` e o histórico de uma amostra de equipamentos.
+4. Promova/restaure no live, libere o acesso e registre o incidente, a janela de perda de dados e os tempos em relação ao RPO/RTO.
 
-## 7. Rollback (bad release)
+## 7. Rollback (versão com problema)
 
-Rollback never drops tables or deletes records.
+O rollback nunca remove tabelas nem apaga registros.
 
-1. Disable the new routes/endpoints (API groups `active = false`, or redeploy the previous frontend).
-2. Restore the previous function/endpoint definitions from the pre-release snapshot (`xano workspace pull` folder or dashboard backup).
-3. If records were created under the new schema, keep them and apply a **forward-repair** change instead of restoring a data snapshot over them.
-4. Re-enable access and re-run the smoke test.
+1. Desative as novas rotas/endpoints (grupos de API com `active = false`, ou publique de novo o frontend anterior).
+2. Restaure as definições anteriores de funções/endpoints a partir do snapshot de antes da versão (pasta do `xano workspace pull` ou backup pelo painel).
+3. Se foram criados registros com o novo schema, mantenha-os e aplique uma mudança de **correção para a frente**, em vez de restaurar um snapshot de dados por cima deles.
+4. Libere o acesso e repita o teste rápido.
 
-## 8. Recovery and rollback rehearsal (required before production)
+## 8. Ensaio de recuperação e rollback (obrigatório antes de produção)
 
-Run in a non-live environment with production-like data and record the result:
+Rode em um ambiente que não seja o live, com dados parecidos com os de produção, e registre o resultado:
 
-| Step | Check | Result |
+| Passo | Verificação | Resultado |
 |---|---|---|
-| Restore the latest backup | Counts of users, equipment, maintenance, occurrences, and audit events equal the source | _pending_ |
-| Equipment history | 3 sampled equipment show identical history and last/next maintenance dates | _pending_ |
-| Logins | One account per role can log in; a disabled account cannot | _pending_ |
-| Rollback | After deploying a test change and rolling back, all of the above still hold and no rows were lost | _pending_ |
-| Timing | Restore time measured against the RTO | _pending_ |
+| Restaurar o backup mais recente | As contagens de usuários, equipamentos, manutenções, ocorrências e eventos de auditoria são iguais às da origem | _pendente_ |
+| Histórico de equipamentos | 3 equipamentos de amostra mostram histórico e datas de última/próxima manutenção idênticos | _pendente_ |
+| Logins | Uma conta de cada perfil consegue entrar; uma conta desabilitada não consegue | _pendente_ |
+| Rollback | Depois de publicar uma mudança de teste e fazer o rollback, tudo acima continua valendo e nenhuma linha foi perdida | _pendente_ |
+| Tempo | Tempo de restauração medido em relação ao RTO | _pendente_ |

@@ -1,5 +1,5 @@
-// Throws accessdenied unless the user is enabled and holds the permission.
-// The error text is identical for every denial so it does not disclose why access failed.
+// Lança accessdenied se o usuário não estiver habilitado ou não tiver a permissão.
+// O texto do erro é igual em toda negação, para não revelar por que o acesso falhou.
 function "hhm/require_permission" {
   input {
     int user_id

@@ -1,4 +1,4 @@
-// This tool connects to the Mintlify MCP Server, which accesses and searches the Xano Documentation based on a search query.
+// Esta ferramenta se conecta ao servidor MCP da Mintlify, que acessa e pesquisa a documentação do Xano a partir de uma consulta.
 tool search_xano_docs {
   instructions = "This allows you to search the Xano Documentation and input a search query. It will return a pages of the Xano Documentation based on the search query. This can be used to answer and analyze questions around Xano and how to use it."
 

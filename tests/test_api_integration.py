@@ -1,14 +1,14 @@
-"""Cross-capability API integration tests (task 6.3): referential integrity, role enforcement,
-audit coverage, maintenance/history calculations, and dashboard/report consistency.
+"""Testes de integração da API entre funcionalidades (tarefa 6.3): integridade referencial, aplicação de perfis,
+cobertura da auditoria, cálculos de manutenção/histórico e consistência entre painel e relatórios.
 
-Runs against a deployed backend (after setup/seed_reference_data and setup/migrate_users):
+Roda contra um backend publicado (depois de setup/seed_reference_data e setup/migrate_users):
 
     HHM_TEST_ADMIN_EMAIL=... HHM_TEST_ADMIN_PASSWORD=... [XANO_BASE_URL=...] pytest tests/test_api_integration.py
 
-The suite creates its own role accounts and fixture records, tagged with a unique run id. The system
-never hard-deletes operational records, so fixtures remain afterwards (deactivated/decommissioned
-where possible). Run it against a test deployment, not the production institution.
-Skipped entirely when the admin credentials are not set.
+A suíte cria as próprias contas por perfil e registros de teste, marcados com um id único por execução. O sistema
+nunca apaga registros operacionais de vez, então os dados de teste permanecem depois (desativados/descomissionados
+quando possível). Rode em um ambiente de teste, não na instituição em produção.
+É pulada por completo quando as credenciais de administrador não estão definidas.
 """
 
 import csv
@@ -34,8 +34,8 @@ GROUPS = {
     "reports": os.environ.get("XANO_REPORTS_GROUP", "hhm149197-reports"),
 }
 RUN = uuid.uuid4().hex[:8]
-PASSWORD = f"Teste{RUN}9"  # temporary password set by the administrator
-FINAL_PASSWORD = f"Pessoal{RUN}7"  # chosen by the user on first login
+PASSWORD = f"Teste{RUN}9"  # senha temporária definida pelo administrador
+FINAL_PASSWORD = f"Pessoal{RUN}7"  # escolhida pelo usuário no primeiro acesso
 TODAY = dt.date.today()
 
 
@@ -60,13 +60,13 @@ def login(email: str, password: str) -> Client:
 
 
 def activate(email: str) -> Client:
-    """First login of an administrator-created account: replace the temporary password."""
+    """Primeiro acesso de uma conta criada pelo administrador: troca a senha temporária."""
     client = login(email, PASSWORD)
     client.ok("POST", "auth", "auth/change_password", json={"senha_atual": PASSWORD, "nova_senha": FINAL_PASSWORD, "confirmar_senha": FINAL_PASSWORD})
     return client
 
 
-# ------------------------------------------------------------------ fixtures
+# ------------------------------------------------------------------ dados de teste
 @pytest.fixture(scope="module")
 def admin() -> Client:
     return login(ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -80,7 +80,7 @@ def roles(admin) -> dict[str, int]:
 
 @pytest.fixture(scope="module")
 def accounts(admin, roles) -> dict[str, dict]:
-    """One enabled account per non-admin role, logged in."""
+    """Uma conta habilitada para cada perfil que não é administrador, já logada."""
     out = {}
     for role in ("viewer", "technician", "asset_manager"):
         email = f"teste.{role}.{RUN}@example.org"
@@ -91,7 +91,7 @@ def accounts(admin, roles) -> dict[str, dict]:
 
 @pytest.fixture(scope="module")
 def base(admin) -> dict:
-    """Manufacturer, category, model, two locations (one inactive) and a component."""
+    """Fabricante, categoria, modelo, duas localizações (uma inativa) e um componente."""
     fab = admin.ok("POST", "inventory", "fabricantes", json={"nome": f"Fab {RUN}"})
     cats = admin.ok("GET", "inventory", "categorias")
     cat = next(c for c in cats if c["nome"] == "ultrassom")
@@ -119,7 +119,7 @@ def audit_events(admin: Client, entidade: str, registro_id: int) -> list[dict]:
     return admin.ok("GET", "reports", "auditoria", params={"entidade": entidade, "registro_id": registro_id})["items"]
 
 
-# ------------------------------------------------------------------ access
+# ------------------------------------------------------------------ acesso
 def test_public_signup_is_disabled():
     r = httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/signup", json={"name": "x", "email": f"x{RUN}@example.org", "password": PASSWORD}, timeout=30)
     assert r.status_code == 403
@@ -166,18 +166,18 @@ def test_admin_role_change_and_disable_apply_immediately(admin, roles, accounts)
     admin.ok("PATCH", "users", f"users/{acc['id']}", json={"role_id": roles["viewer"]})
     assert any(e["action"] == "user.updated" for e in audit_events(admin, "user", acc["id"]))
 
-    # Disabled: existing token stops working and login is refused
+    # Desabilitado: o token existente para de funcionar e o login é recusado
     email = f"teste.disable.{RUN}@example.org"
     user = admin.ok("POST", "users", "users", json={"name": "Desabilitar", "email": email, "password": PASSWORD, "role_id": roles["viewer"]})
     client = activate(email)
-    assert client.req("GET", "inventory", "equipamentos").status_code == 200  # works before disabling
+    assert client.req("GET", "inventory", "equipamentos").status_code == 200  # funciona antes de desabilitar
     admin.ok("PATCH", "users", f"users/{user['id']}", json={"ativo": False})
     assert client.req("GET", "inventory", "equipamentos").status_code == 403
     r = httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/login", json={"email": email, "password": FINAL_PASSWORD}, timeout=30)
     assert r.status_code == 403
 
 
-# ------------------------------------------------------------------ catalogs and integrity
+# ------------------------------------------------------------------ catálogos e integridade
 def test_model_requires_existing_active_references(admin, base):
     r = admin.req("POST", "inventory", "modelos", json={"nome": f"M ruim {RUN}", "fabricante_id": 999999999, "categoria_id": base["cat"]["id"]})
     assert r.status_code == 400 and "fabricante_id" in r.text
@@ -193,15 +193,15 @@ def test_equipment_validation_and_derived_catalog(admin, base):
     e = new_equipment(admin, base, "A", numero_serie="  ")
     assert e["fabricante_id"] == base["fab"]["id"] and e["categoria_id"] == base["cat"]["id"]
     assert e["numero_serie"] is None, "blank serial must be stored as null"
-    new_equipment(admin, base, "A2", numero_serie="")  # a second blank serial is allowed
+    new_equipment(admin, base, "A2", numero_serie="")  # uma segunda série em branco é permitida
     s1 = new_equipment(admin, base, "S1", numero_serie=f"SER-{RUN}")
     cases = [
-        {"numero_patrimonio": e["numero_patrimonio"]},  # duplicate asset number
-        {"numero_serie": f"SER-{RUN}"},  # duplicate serial
-        {"categoria_id": base["cat"]["id"] + 1000},  # conflicting category
-        {"modelo_id": 999999999},  # missing model
-        {"localizacao_id": base["loc_inativa"]["id"]},  # inactive location
-        {"data_aquisicao": str(TODAY + dt.timedelta(days=2))},  # future acquisition
+        {"numero_patrimonio": e["numero_patrimonio"]},  # patrimônio duplicado
+        {"numero_serie": f"SER-{RUN}"},  # série duplicada
+        {"categoria_id": base["cat"]["id"] + 1000},  # categoria conflitante
+        {"modelo_id": 999999999},  # modelo inexistente
+        {"localizacao_id": base["loc_inativa"]["id"]},  # localização inativa
+        {"data_aquisicao": str(TODAY + dt.timedelta(days=2))},  # aquisição no futuro
         {"valor_aquisicao": -1},
         {"vida_util_anos": 0},
         {"ano_fabricacao": TODAY.year + 1},
@@ -227,7 +227,7 @@ def test_move_status_decommission_are_audited_and_history_kept(admin, base):
     assert any(ev["action"] == "equipamento.moved" for ev in events)
 
     occ = admin.ok("POST", "maintenance", "ocorrencias", json={"equipamento_id": e["id"], "descricao_tecnica": "Tela não liga", "severidade": "high"})
-    assert admin.req("POST", "inventory", f"equipamentos/{e['id']}/status", json={"status": "decommissioned"}).status_code == 400  # reason required
+    assert admin.req("POST", "inventory", f"equipamentos/{e['id']}/status", json={"status": "decommissioned"}).status_code == 400  # motivo obrigatório
     admin.ok("POST", "inventory", f"equipamentos/{e['id']}/status", json={"status": "decommissioned", "motivo": "Fim de vida útil"})
     listed = admin.ok("GET", "inventory", "equipamentos", params={"q": e["numero_patrimonio"]})["items"]
     assert not listed, "decommissioned equipment must be hidden from active lists by default"
@@ -251,7 +251,7 @@ def test_component_assignment_rules_and_history(admin, base):
     assert {"componente_instalado", "componente_removido"} <= {ev["categoria"] for ev in hist}
 
 
-# ------------------------------------------------------------------ maintenance and occurrences
+# ------------------------------------------------------------------ manutenções e ocorrências
 def test_preventive_schedule_due_views_and_derived_dates(admin, accounts, base):
     tech = accounts["technician"]
     e = new_equipment(admin, base, "P")
@@ -274,7 +274,7 @@ def test_preventive_schedule_due_views_and_derived_dates(admin, accounts, base):
     assert detail["ultima_manutencao"] is None
     assert detail["proxima_manutencao"] == future_near["data_planejada"]
 
-    # Incomplete completion/cancellation is rejected and the state preserved
+    # Conclusão/cancelamento incompleto é recusado e o estado é mantido
     t = tech["client"]
     assert t.req("POST", "maintenance", f"manutencoes/{overdue['id']}/concluir", json={"concluida_em": int(dt.datetime.now().timestamp() * 1000), "resumo_execucao": ""}).status_code == 400
     assert t.req("POST", "maintenance", f"manutencoes/{to_cancel['id']}/cancelar", json={"motivo_cancelamento": ""}).status_code == 400
@@ -330,7 +330,7 @@ def test_occurrence_lifecycle_and_corrective_link(admin, accounts, base):
     assert any(ev["categoria"] == "ocorrencia" and ev["status"] == "resolved" for ev in hist)
 
 
-# ------------------------------------------------------------------ dashboard and reports
+# ------------------------------------------------------------------ painel e relatórios
 def test_dashboard_totals_match_fixture_for_location_filter(admin, base):
     loc = admin.ok("POST", "inventory", "localizacoes", json={"nome": f"Sala dashboard {RUN}"})
     for i, status in enumerate(["operational", "operational", "out_of_service"]):
@@ -372,7 +372,7 @@ def test_overdue_maintenance_report(admin, accounts, base):
     assert all(r["status"] == "planned" and r["data_planejada"] < str(TODAY) for r in rows)
 
 
-# ------------------------------------------------------------------ seed, migration, recovery (tasks 1.3, 1.4, 2.1)
+# ------------------------------------------------------------------ seed, migração, recuperação (tarefas 1.3, 1.4, 2.1)
 MATRIX = {
     "administrator": {"operational.read", "inventory.manage", "maintenance.manage", "occurrence.report", "occurrence.manage", "reports.read", "audit.read", "users.manage"},
     "asset_manager": {"operational.read", "inventory.manage", "maintenance.manage", "occurrence.report", "occurrence.manage", "reports.read"},
@@ -428,7 +428,7 @@ def test_disabled_account_cannot_recover_access(admin, roles):
     assert r.status_code == 403
 
 
-# ------------------------------------------------------------------ audit coverage (task 2.3)
+# ------------------------------------------------------------------ cobertura da auditoria (tarefa 2.3)
 def test_audit_covers_catalog_component_and_permission_changes(admin, base):
     fab = admin.ok("POST", "inventory", "fabricantes", json={"nome": f"Fab audit {RUN}"})
     admin.ok("PATCH", "inventory", f"fabricantes/{fab['id']}", json={"site": "https://example.org"})
@@ -451,9 +451,9 @@ def test_audit_covers_catalog_component_and_permission_changes(admin, base):
 
 
 def test_unfiltered_audit_view_lists_recent_events(admin):
-    """Without filters the view must list every recent event (it once hid events without metadata)."""
+    """Sem filtros, a tela deve listar todo evento recente (antes ela escondia eventos sem metadata)."""
     fab = admin.ok("POST", "inventory", "fabricantes", json={"nome": f"Fab audit view {RUN}"})
-    login(ADMIN_EMAIL, ADMIN_PASSWORD)  # writes a "login" event
+    login(ADMIN_EMAIL, ADMIN_PASSWORD)  # grava um evento "login"
     newest = admin.ok("GET", "reports", "auditoria", params={"per_page": 10})["items"]
     actions = [ev["action"] for ev in newest]
     assert "login" in actions, actions
@@ -461,16 +461,16 @@ def test_unfiltered_audit_view_lists_recent_events(admin):
     assert [ev["created_at"] for ev in newest] == sorted((ev["created_at"] for ev in newest), reverse=True)
 
 
-# ------------------------------------------------------------------ roles (design: role/permission management)
+# ------------------------------------------------------------------ perfis (design: gestão de perfis e permissões)
 def test_role_deactivation_guards(admin, roles, accounts):
     assert admin.req("PATCH", "users", f"roles/{roles['administrator']}", json={"ativo": False}).status_code == 400
-    assert admin.req("PATCH", "users", f"roles/{roles['technician']}", json={"ativo": False}).status_code == 400  # has enabled users
+    assert admin.req("PATCH", "users", f"roles/{roles['technician']}", json={"ativo": False}).status_code == 400  # tem usuários habilitados
     empty = admin.ok("POST", "users", "roles", json={"nome": f"vazio_{RUN}"})
     assert admin.ok("PATCH", "users", f"roles/{empty['id']}", json={"ativo": False})["ativo"] is False
     assert accounts["viewer"]["client"].req("POST", "users", "roles", json={"nome": f"x_{RUN}"}).status_code == 403
 
 
-# ------------------------------------------------------------------ assignment and technician limits
+# ------------------------------------------------------------------ atribuição e limites do técnico
 def test_assignee_must_be_able_to_work_on_the_area(admin, accounts, base):
     e = new_equipment(admin, base, "AS")
     r = admin.req(
@@ -494,7 +494,7 @@ def test_technician_occurrence_limits(admin, accounts, base):
     assert admin.ok("GET", "maintenance", f"ocorrencias/{occ['id']}")["status"] == "open"
 
 
-# ------------------------------------------------------------------ equipment status rules
+# ------------------------------------------------------------------ regras de status do equipamento
 def test_initial_status_rules(admin, base):
     payload = {"nome": "x", "modelo_id": base["modelo"]["id"], "localizacao_id": base["loc"]["id"]}
     r = admin.req("POST", "inventory", "equipamentos", json=payload | {"numero_patrimonio": f"PAT-{RUN}-IS1", "status": "decommissioned"})
@@ -539,9 +539,9 @@ def test_overdue_means_planned_preventive_everywhere(admin, accounts, base):
     assert corr["id"] not in listed
 
 
-# ------------------------------------------------------------------ review decisions (2026-10-08)
+# ------------------------------------------------------------------ decisões da revisão (2026-10-08)
 def test_old_audit_events_hold_no_credentials(admin):
-    """Decision 4: events are kept, but no audit metadata carries a password hash or reset-token hash."""
+    """Decisão 4: os eventos são mantidos, mas nenhuma metadata de auditoria guarda hash de senha ou de token de redefinição."""
     for action in ("login", "signup", "get_auth_user", "login_for_password_reset", "reset_password"):
         for ev in admin.ok("GET", "reports", "auditoria", params={"action": action, "per_page": 200})["items"]:
             meta = ev.get("metadata") or {}
@@ -550,7 +550,7 @@ def test_old_audit_events_hold_no_credentials(admin):
 
 
 def test_technician_cannot_change_equipment_status_through_maintenance(admin, accounts, base):
-    """Decision 20: equipment status changes need inventory.manage, also via start/complete."""
+    """Decisão 20: mudar o status do equipamento exige inventory.manage, inclusive ao iniciar/concluir."""
     tech = accounts["technician"]
     e = new_equipment(admin, base, "TS")
     m = admin.ok(
@@ -561,7 +561,7 @@ def test_technician_cannot_change_equipment_status_through_maintenance(admin, ac
     r = t.req("POST", "maintenance", f"manutencoes/{m['id']}/iniciar", json={"colocar_equipamento_em_manutencao": True})
     assert r.status_code == 403
     assert admin.ok("GET", "inventory", f"equipamentos/{e['id']}")["status"] == "operational"
-    t.ok("POST", "maintenance", f"manutencoes/{m['id']}/iniciar", json={})  # the work itself may start
+    t.ok("POST", "maintenance", f"manutencoes/{m['id']}/iniciar", json={})  # o trabalho em si pode começar
     done = {"concluida_em": int(dt.datetime.now().timestamp() * 1000), "resumo_execucao": "ok"}
     r = t.req("POST", "maintenance", f"manutencoes/{m['id']}/concluir", json=done | {"status_equipamento": "operational"})
     assert r.status_code == 403
@@ -570,7 +570,7 @@ def test_technician_cannot_change_equipment_status_through_maintenance(admin, ac
 
 
 def test_out_of_service_on_completion_requires_reason(admin, accounts, base):
-    """Decision 21a: the reason rule applies to every path, including completing maintenance."""
+    """Decisão 21a: a regra do motivo vale para todos os caminhos, inclusive concluir manutenção."""
     e = new_equipment(admin, base, "CR")
     m = admin.ok(
         "POST", "maintenance", "manutencoes",
@@ -584,7 +584,7 @@ def test_out_of_service_on_completion_requires_reason(admin, accounts, base):
 
 
 def test_decommissioning_is_final(admin, base):
-    """Decision 21b."""
+    """Decisão 21b."""
     e = new_equipment(admin, base, "DF")
     admin.ok("POST", "inventory", f"equipamentos/{e['id']}/status", json={"status": "decommissioned", "motivo": "Fim de vida"})
     for status in ("operational", "out_of_service", "under_maintenance"):
@@ -594,7 +594,7 @@ def test_decommissioning_is_final(admin, base):
 
 
 def test_recurrence_only_suggests_next_date(admin, accounts, base):
-    """Decision 21c: completing recurring work creates no new maintenance record."""
+    """Decisão 21c: concluir um trabalho recorrente não cria um novo registro de manutenção."""
     e = new_equipment(admin, base, "RC")
     m = admin.ok(
         "POST", "maintenance", "manutencoes",
@@ -606,7 +606,7 @@ def test_recurrence_only_suggests_next_date(admin, accounts, base):
 
 
 def test_location_filter_excludes_sub_locations(admin, base):
-    """Decision 21d."""
+    """Decisão 21d."""
     parent = admin.ok("POST", "inventory", "localizacoes", json={"nome": f"Prédio {RUN}"})
     child = admin.ok("POST", "inventory", "localizacoes", json={"nome": f"Sala filha {RUN}", "parent_id": parent["id"]})
     new_equipment(admin, base, "LF", localizacao_id=child["id"])
@@ -615,17 +615,17 @@ def test_location_filter_excludes_sub_locations(admin, base):
 
 
 def test_catalog_edit_rules(admin, base):
-    """Decision 18: edits go through the existing API with its validation."""
+    """Decisão 18: edições passam pela API existente, com a validação dela."""
     fab = admin.ok("POST", "inventory", "fabricantes", json={"nome": f"Fab edit {RUN}"})
     assert admin.req("PATCH", "inventory", f"fabricantes/{fab['id']}", json={"nome": base["fab"]["nome"]}).status_code == 400
     assert admin.ok("PATCH", "inventory", f"fabricantes/{fab['id']}", json={"nome": f"Fab editado {RUN}", "site": ""})["nome"] == f"Fab editado {RUN}"
     parent = admin.ok("POST", "inventory", "localizacoes", json={"nome": f"Bloco {RUN}"})
     child = admin.ok("POST", "inventory", "localizacoes", json={"nome": f"Ala {RUN}", "parent_id": parent["id"]})
-    assert admin.req("PATCH", "inventory", f"localizacoes/{parent['id']}", json={"parent_id": child["id"]}).status_code == 400  # cycle
+    assert admin.req("PATCH", "inventory", f"localizacoes/{parent['id']}", json={"parent_id": child["id"]}).status_code == 400  # ciclo
     assert admin.ok("PATCH", "inventory", f"localizacoes/{child['id']}", json={"parent_id": 0})["parent_id"] is None
 
 
-# ------------------------------------------------------------------ temporary password on first login
+# ------------------------------------------------------------------ senha temporária no primeiro acesso
 def test_temporary_password_must_be_changed_before_use(admin, roles):
     email = f"teste.temp.{RUN}@example.org"
     created = admin.ok("POST", "users", "users", json={"name": "Temporária", "email": email, "password": PASSWORD, "role_id": roles["asset_manager"]})
@@ -636,16 +636,16 @@ def test_temporary_password_must_be_changed_before_use(admin, roles):
     client = Client(r.json()["authToken"])
     me = client.ok("GET", "auth", "auth/me")
     assert me["deve_trocar_senha"] is True and me["permissions"] == []
-    # Every protected operation is refused until the password is changed
+    # Toda operação protegida é recusada até a senha ser trocada
     assert client.req("GET", "inventory", "equipamentos").status_code == 403
     assert client.req("POST", "inventory", "fabricantes", json={"nome": f"Fab temp {RUN}"}).status_code == 403
 
     change = lambda body: client.req("POST", "auth", "auth/change_password", json=body)  # noqa: E731
     assert change({"senha_atual": "errada123", "nova_senha": FINAL_PASSWORD, "confirmar_senha": FINAL_PASSWORD}).status_code == 400
-    assert change({"senha_atual": PASSWORD, "nova_senha": PASSWORD, "confirmar_senha": PASSWORD}).status_code == 400  # same password
-    assert change({"senha_atual": PASSWORD, "nova_senha": "curta1", "confirmar_senha": "curta1"}).status_code == 400  # policy
+    assert change({"senha_atual": PASSWORD, "nova_senha": PASSWORD, "confirmar_senha": PASSWORD}).status_code == 400  # mesma senha
+    assert change({"senha_atual": PASSWORD, "nova_senha": "curta1", "confirmar_senha": "curta1"}).status_code == 400  # política
     assert change({"senha_atual": PASSWORD, "nova_senha": FINAL_PASSWORD, "confirmar_senha": "outra123"}).status_code == 400
-    assert client.ok("GET", "auth", "auth/me")["deve_trocar_senha"] is True  # nothing changed yet
+    assert client.ok("GET", "auth", "auth/me")["deve_trocar_senha"] is True  # nada mudou ainda
 
     assert change({"senha_atual": PASSWORD, "nova_senha": FINAL_PASSWORD, "confirmar_senha": FINAL_PASSWORD}).status_code == 200
     me = client.ok("GET", "auth", "auth/me")
@@ -666,25 +666,25 @@ def test_temporary_password_must_be_changed_before_use(admin, roles):
 def test_administrator_cannot_set_an_existing_users_password(admin, accounts):
     acc = accounts["viewer"]
     r = admin.req("PATCH", "users", f"users/{acc['id']}", json={"password": "Admin1234x"})
-    assert r.status_code in (200, 400)  # the field is not accepted by the endpoint
+    assert r.status_code in (200, 400)  # o endpoint não aceita esse campo
     assert httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/login", json={"email": acc["email"], "password": "Admin1234x"}, timeout=30).status_code == 403
     assert httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/login", json={"email": acc["email"], "password": FINAL_PASSWORD}, timeout=30).status_code == 200
-    # Re-provisioning the same email (a reset in disguise) is refused too
+    # Recriar o mesmo e-mail (uma redefinição disfarçada) também é recusado
     r = admin.req("POST", "users", "users", json={"name": "x", "email": acc["email"], "password": "Admin1234x", "role_id": 1})
     assert r.status_code == 400
-    # change_password only ever changes the caller's own password
+    # change_password só altera a senha de quem chama
     r = admin.req("POST", "auth", "auth/change_password", json={"senha_atual": "x", "nova_senha": "Admin1234x", "confirmar_senha": "Admin1234x", "user_id": acc["id"]})
     assert r.status_code == 400
     assert httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/login", json={"email": acc["email"], "password": FINAL_PASSWORD}, timeout=30).status_code == 200
 
 
-# ------------------------------------------------------------------ reset flow (no reset sessions)
+# ------------------------------------------------------------------ fluxo de redefinição (sem sessões de redefinição)
 def test_reset_links_never_create_sessions(accounts):
-    """The old two-step flow returned a full session for a reset link; both of its endpoints are disabled."""
+    """O fluxo antigo em dois passos devolvia uma sessão completa para o link de redefinição; os dois endpoints dele estão desativados."""
     anon = Client()
     r = anon.req("POST", "auth", "reset/magic-link-login", json={"magic_token": "x", "email": accounts["viewer"]["email"]})
     assert r.status_code == 403 and "authToken" not in r.text
-    # A normal session cannot set a password without the current one any more
+    # Uma sessão normal não consegue mais definir senha sem informar a atual
     viewer = accounts["viewer"]["client"]
     r = viewer.req("POST", "auth", "reset/update_password", json={"password": "Tomada123x", "confirm_password": "Tomada123x"})
     assert r.status_code == 403
@@ -700,12 +700,12 @@ def test_reset_confirm_rejects_bad_links_identically(accounts):
     assert known.json().get("message") == unknown.json().get("message"), "must not reveal whether the account exists"
     mismatch = anon.req("POST", "auth", "reset/confirm", json={"magic_token": "x", "email": accounts["viewer"]["email"], "nova_senha": "Nova12345x", "confirmar_senha": "Outra12345x"})
     assert mismatch.status_code == 400
-    # The account still works with its own password
+    # A conta continua funcionando com a própria senha
     assert httpx.post(f"{BASE}/api:{GROUPS['auth']}/auth/login", json={"email": accounts["viewer"]["email"], "password": FINAL_PASSWORD}, timeout=30).status_code == 200
 
 
 def test_history_marks_planned_only_events_as_dates(admin, accounts, base):
-    """Item 5: events dated by a planned calendar date are flagged so clients do not timezone-convert them."""
+    """Item 5: eventos datados por uma data planejada de calendário são marcados para os clientes não converterem o fuso."""
     e = new_equipment(admin, base, "HD")
     m = admin.ok(
         "POST", "maintenance", "manutencoes",

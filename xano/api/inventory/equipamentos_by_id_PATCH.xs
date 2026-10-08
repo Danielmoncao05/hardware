@@ -1,7 +1,7 @@
-// Edits equipment identity and acquisition data (inventory.manage). Location and status change only
-// through the move and status endpoints so each is a separately audited transition.
-// Omitted (null) fields keep their value. Send "" to clear serial or observations; optional numeric
-// and date fields can be changed but not cleared through this endpoint.
+// Edita os dados de identificação e aquisição do equipamento (inventory.manage). Localização e status só mudam
+// pelos endpoints de mover e de status, para cada um ser uma transição auditada separadamente.
+// Campos omitidos (null) mantêm o valor. Envie "" para limpar a série ou as observações; campos numéricos e de
+// data opcionais podem ser alterados, mas não limpos, por este endpoint.
 query "equipamentos/{equipamento_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"
@@ -36,7 +36,7 @@ query "equipamentos/{equipamento_id}" verb=PATCH {
       error = "Equipment not found."
     }
 
-    // Decommissioned equipment is kept read-only as history (same rule as move/status/components)
+    // Equipamento descomissionado fica somente leitura, como histórico (mesma regra de mover/status/componentes)
     precondition ($before.status != "decommissioned") {
       error_type = "inputerror"
       error = "Decommissioned equipment cannot be edited."
@@ -46,7 +46,7 @@ query "equipamentos/{equipamento_id}" verb=PATCH {
       value = $input.modelo_id ?? $before.modelo_id
     }
 
-    // Serial: null keeps the current value, "" clears it, anything else replaces it
+    // Série: null mantém o valor atual, "" limpa, qualquer outro valor substitui
     var $serie_in {
       value = $before.numero_serie
     }

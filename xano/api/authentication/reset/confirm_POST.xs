@@ -1,8 +1,8 @@
-// Completes a password reset from the emailed link in one step: verifies the one-time token and sets the
-// new password. No session is created, so a reset link can only ever change that account's password
-// (it never grants access to anything else). Replaces the magic-link-login + update_password pair.
-// Token rules: stored only as a hash, valid 60 minutes, single use, replaced by any newer request.
-// Every token or account problem gets the same answer, so the response never reveals which check failed.
+// Conclui uma redefinição de senha a partir do link enviado por e-mail, em um passo: valida o token de uso único e define a
+// nova senha. Nenhuma sessão é criada, então um link de redefinição só consegue alterar a senha daquela conta
+// (nunca dá acesso a mais nada). Substitui o par magic-link-login + update_password.
+// Regras do token: guardado só como hash, válido por 60 minutos, uso único, substituído por qualquer pedido mais novo.
+// Qualquer problema de token ou de conta recebe a mesma resposta, para nunca revelar qual verificação falhou.
 query "reset/confirm" verb=POST {
   api_group = "Authentication"
 
@@ -64,7 +64,7 @@ query "reset/confirm" verb=POST {
 
     db.transaction {
       stack {
-        // New password chosen by the user; it also replaces a pending temporary password
+        // Nova senha escolhida pelo usuário; também substitui uma senha temporária pendente
         db.edit user {
           field_name = "id"
           field_value = $user.id

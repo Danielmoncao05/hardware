@@ -1,49 +1,49 @@
-# Tasks
+# Tarefas
 
-## 1. Data foundation and migration
+## 1. Base de dados e migração
 
-- [x] 1.1 Verify Xano support for the proposed foreign keys, unique constraints, transactions, and indexes; record a validation result for every constraint used by the domain schema.
-- [ ] 1.2 Create the relational tables, primary/foreign keys, constraints, and indexes from `design.md`; verify schema checks reject invalid references, duplicate asset numbers, duplicate non-empty serial numbers, and invalid quantities.
-- [ ] 1.3 Seed the 12 equipment categories, component types, roles, permissions, and role grants; verify each required value exists exactly once and role grants match the approved matrix.
-- [ ] 1.4 Extend the existing user and event-log model; migrate `admin` to `administrator` and `member` to `viewer`, disable public signup, and verify the migration preserves accounts and audit history without granting unintended privileges.
+- [x] 1.1 Verificar o suporte do Xano a chaves estrangeiras, restrições de unicidade, transações e índices propostos; registrar um resultado de validação para cada restrição usada pelo schema do domínio.
+- [ ] 1.2 Criar as tabelas relacionais, chaves primárias/estrangeiras, restrições e índices do `design.md`; verificar se as checagens do schema recusam referências inválidas, números de patrimônio duplicados, números de série não vazios duplicados e quantidades inválidas.
+- [ ] 1.3 Criar as 12 categorias de equipamento, os tipos de componente, os perfis, as permissões e as concessões por perfil; verificar se cada valor exigido existe exatamente uma vez e se as concessões batem com a matriz aprovada.
+- [ ] 1.4 Estender o modelo existente de usuário e de log de eventos; migrar `admin` para `administrator` e `member` para `viewer`, desativar o cadastro público e verificar se a migração preserva as contas e o histórico de auditoria sem conceder privilégios indevidos.
 
-## 2. Authentication, authorization, and audit
+## 2. Autenticação, autorização e auditoria
 
-- [ ] 2.1 Implement authenticated account provisioning (with a temporary password), disablement, and recovery flows (single-step `reset/confirm`; the session-based `reset/magic-link-login` and `reset/update_password` disabled); verify public signup is unavailable and disabled users cannot authenticate or recover access.
-- [ ] 2.2 Enforce role permissions in every protected API operation; verify unauthenticated requests and each denied role/action combination return an authorization error without changing or disclosing protected data.
-- [ ] 2.3 Record audit events for material inventory, component, maintenance, occurrence, location, status, and permission changes; verify actor, action, affected record, timestamp, and status before/after details are retained.
+- [ ] 2.1 Implementar a criação autenticada de contas (com senha temporária), a desabilitação e os fluxos de recuperação (`reset/confirm` em um passo; `reset/magic-link-login` e `reset/update_password`, que usavam sessão, desativados); verificar se o cadastro público não existe e se usuários desabilitados não conseguem se autenticar nem recuperar o acesso.
+- [ ] 2.2 Aplicar as permissões dos perfis em toda operação protegida da API; verificar se requisições sem autenticação e cada combinação negada de perfil/ação devolvem erro de autorização sem alterar nem revelar dados protegidos.
+- [ ] 2.3 Registrar eventos de auditoria para mudanças relevantes de inventário, componentes, manutenção, ocorrências, localização, status e permissões; verificar se quem agiu, a ação, o registro afetado, a data e hora e os detalhes de status antes/depois são mantidos.
 
-## 3. Equipment inventory
+## 3. Inventário de equipamentos
 
-- [ ] 3.1 Implement manufacturer, category, model, and location management with activation/deactivation; verify required relationships, unique model constraints, and inactive-reference rejection.
-- [ ] 3.2 Implement equipment list, create/edit, detail, move, status-change, and decommission workflows; verify required and optional fields, server-side validation, derived category/manufacturer, uniqueness, and history retention.
-- [ ] 3.3 Implement the component catalog and equipment-component assignment/removal workflows; verify the N:N relationship, positive quantity rule, repeat component slots, and retained installation/removal history.
+- [ ] 3.1 Implementar a gestão de fabricantes, categorias, modelos e localizações, com ativação/desativação; verificar as relações obrigatórias, a unicidade dos modelos e a recusa de referências inativas.
+- [ ] 3.2 Implementar os fluxos de lista, cadastro/edição, detalhe, movimentação, troca de status e descomissionamento de equipamentos; verificar campos obrigatórios e opcionais, validação no servidor, categoria/fabricante derivados, unicidade e manutenção do histórico.
+- [ ] 3.3 Implementar o catálogo de componentes e os fluxos de instalação/remoção de componentes nos equipamentos; verificar a relação N:N, a regra de quantidade positiva, slots repetidos do mesmo componente e o histórico de instalação/remoção mantido.
 
-## 4. Maintenance and occurrences
+## 4. Manutenções e ocorrências
 
-- [ ] 4.1 Implement preventive scheduling, recurrence metadata, assignment, due/overdue views, and maintenance state transitions; verify completion/cancellation requirements and exclusion of completed/canceled work from due lists.
-- [ ] 4.2 Implement corrective maintenance and occurrence reporting, assignment, resolution, cancellation, and linkage; verify required technical description, severity, reporter, resolution details, and occurrence-to-maintenance relationship.
-- [ ] 4.3 Implement the chronological equipment history and derived last/next maintenance dates; verify completed and canceled records remain visible and dates are calculated from source maintenance records rather than stored copies.
+- [ ] 4.1 Implementar o agendamento preventivo, os dados de recorrência, a atribuição, as listas de próximas/atrasadas e as transições de estado da manutenção; verificar as exigências de conclusão/cancelamento e a exclusão de trabalhos concluídos/cancelados das listas de pendentes.
+- [ ] 4.2 Implementar a manutenção corretiva e o registro, atribuição, resolução, cancelamento e vínculo de ocorrências; verificar a descrição técnica obrigatória, severidade, relator, detalhes da resolução e a relação entre ocorrência e manutenção.
+- [ ] 4.3 Implementar o histórico cronológico do equipamento e as datas derivadas de última/próxima manutenção; verificar se registros concluídos e cancelados continuam visíveis e se as datas são calculadas a partir das manutenções de origem, não de cópias gravadas.
 
-## 5. Dashboard and reports
+## 5. Painel e relatórios
 
-- [ ] 5.1 Implement the authenticated operational dashboard with status/category totals, location filtering, due/overdue preventive work, open occurrences, and recent service activity; verify totals against fixture records for each filter.
-- [ ] 5.2 Implement filtered inventory, maintenance, and occurrence reports with CSV export; verify exported rows match on-screen filters, permissions, and allowed non-clinical columns.
+- [ ] 5.1 Implementar o painel operacional autenticado com totais por status/categoria, filtro por localização, preventivas próximas/atrasadas, ocorrências abertas e atividade recente de serviço; verificar os totais contra registros de teste em cada filtro.
+- [ ] 5.2 Implementar os relatórios filtrados de inventário, manutenções e ocorrências com exportação CSV; verificar se as linhas exportadas correspondem aos filtros da tela, às permissões e às colunas não clínicas permitidas.
 
-## 6. Quality, accessibility, and release readiness
+## 6. Qualidade, acessibilidade e prontidão para lançamento
 
-- [ ] 6.1 Implement the screens and navigation specified in `design.md`; verify primary workflows are usable on desktop and tablet and forms have accessible labels, logical keyboard focus, and visible validation errors.
-- [ ] 6.2 Measure standard filtered inventory-list response time with 10,000 equipment records under nominal load; verify p95 is at or below 2 seconds and record the test setup and result.
-- [ ] 6.3 Run cross-capability integration tests for referential integrity, role enforcement, audit coverage, maintenance/history calculations, and the absence of patient/clinical fields or workflows; verify all scenarios in the capability specs pass.
-- [ ] 6.4 Document production hosting, backup/retention, recovery objectives, deployment, and rollback procedures; verify a recovery and rollback rehearsal preserves existing users, equipment, and service history.
+- [ ] 6.1 Implementar as telas e a navegação especificadas no `design.md`; verificar se os fluxos principais funcionam no desktop e no tablet e se os formulários têm rótulos acessíveis, foco de teclado lógico e erros de validação visíveis.
+- [ ] 6.2 Medir o tempo de resposta da listagem padrão de inventário com filtros, com 10.000 equipamentos e carga nominal; verificar se o p95 fica em até 2 segundos e registrar a configuração e o resultado do teste.
+- [ ] 6.3 Rodar testes de integração entre as capacidades para integridade referencial, aplicação de perfis, cobertura da auditoria, cálculos de manutenção/histórico e ausência de campos ou fluxos de pacientes/clínicos; verificar se todos os cenários das specs passam.
+- [ ] 6.4 Documentar hospedagem em produção, backup/retenção, objetivos de recuperação, implantação e procedimentos de rollback; verificar se um ensaio de recuperação e rollback preserva os usuários, equipamentos e histórico de serviços existentes.
 
-## 7. Review decisions and added scope
+## 7. Decisões da revisão e escopo adicionado
 
-- [ ] 7.1 Implement role creation, permission grant/revoke, and activation/deactivation; verify the `administrator` role and roles held by enabled users cannot be deactivated, `users.manage` cannot be revoked from `administrator`, and every change is audited.
-- [ ] 7.2 Implement temporary passwords on account creation and the first-login change (`auth/change_password`); verify the account holds no permissions until the change, the change requires the current password and the password policy, and administrators cannot set or reset an existing user's password by any means.
-- [ ] 7.3 Implement email-only password recovery through the shared email function and `reset/confirm`; verify links are single use, hashed, expire after 60 minutes, create no session, return identical responses for unknown, disabled, and invalid cases, and that recovery fails closed until `HHM_APP_URL`, `RESEND_API_KEY`, and `HHM_EMAIL_FROM` are configured.
-- [ ] 7.4 Implement the audit credential cleanup (`setup/scrub_audit_credentials`); verify no audit event contains a password hash or reset token afterwards and no event was deleted.
-- [ ] 7.5 Enforce the confirmed equipment rules; verify a reason is required for `out_of_service` and `decommissioned` on every path, decommissioning is final, and equipment status changes made while starting or completing maintenance require `inventory.manage`.
-- [ ] 7.6 Implement preventive-only due work, recurrence as a suggestion, the assignee permission rule, and corrective maintenance pre-filled from an occurrence; verify the overdue definition matches across list, dashboard, and report, completion creates no new record, unqualified assignees are rejected, and the occurrence link is set automatically.
-- [ ] 7.7 Implement the frontend behaviors: no-access page and guards, catalog editing, oldest-first history, and display in the institution timezone; verify guards never loop, inactive references are not cleared on edit, and planned dates are not timezone-shifted.
-- [ ] 7.8 Implement the single post-push setup step (`setup/run_deployment_setup`: seed, migration, audit cleanup) and the maintenance-window procedure in `docs/operations.md`; verify it is idempotent, refuses divergent role grants, and leaves no account without a role.
+- [ ] 7.1 Implementar a criação de perfis, concessão/revogação de permissões e ativação/desativação; verificar se o perfil `administrator` e perfis de usuários habilitados não podem ser desativados, se `users.manage` não pode ser revogada de `administrator` e se toda mudança é auditada.
+- [ ] 7.2 Implementar senhas temporárias na criação de contas e a troca no primeiro acesso (`auth/change_password`); verificar se a conta fica sem permissões até a troca, se a troca exige a senha atual e a política de senhas, e se administradores não conseguem definir nem redefinir a senha de um usuário existente por nenhum meio.
+- [ ] 7.3 Implementar a recuperação de senha somente por e-mail, pela função de e-mail compartilhada e `reset/confirm`; verificar se os links são de uso único, guardados como hash, expiram em 60 minutos, não criam sessão, devolvem respostas idênticas para casos desconhecidos, desabilitados e inválidos, e se a recuperação falha de forma segura até `HHM_APP_URL`, `RESEND_API_KEY` e `HHM_EMAIL_FROM` estarem configuradas.
+- [ ] 7.4 Implementar a limpeza de credenciais da auditoria (`setup/scrub_audit_credentials`); verificar se depois disso nenhum evento de auditoria contém hash de senha ou token de redefinição e se nenhum evento foi apagado.
+- [ ] 7.5 Aplicar as regras de equipamento confirmadas; verificar se é exigido motivo para `out_of_service` e `decommissioned` em todos os caminhos, se o descomissionamento é definitivo e se trocas de status feitas ao iniciar ou concluir manutenção exigem `inventory.manage`.
+- [ ] 7.6 Implementar trabalho pendente só com preventivas, recorrência como sugestão, a regra de permissão do responsável e a manutenção corretiva preenchida a partir de uma ocorrência; verificar se a definição de atrasada é a mesma na lista, no painel e no relatório, se a conclusão não cria registro novo, se responsáveis sem permissão são recusados e se o vínculo com a ocorrência é definido automaticamente.
+- [ ] 7.7 Implementar os comportamentos do frontend: página de acesso negado e guards, edição de catálogos, histórico com os mais antigos primeiro e exibição no fuso da instituição; verificar se os guards nunca entram em loop, se referências inativas não são apagadas na edição e se as datas planejadas não mudam por fuso.
+- [ ] 7.8 Implementar o passo único de setup após o push (`setup/run_deployment_setup`: seed, migração, limpeza da auditoria) e o procedimento de janela de manutenção em `docs/operations.md`; verificar se ele é idempotente, recusa concessões divergentes e não deixa nenhuma conta sem perfil.

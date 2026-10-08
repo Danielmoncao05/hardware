@@ -1,4 +1,4 @@
-// Contains API Endpoints for reports of event logs
+// Contém os endpoints de API para relatórios de logs de eventos
 api_group "Event Logs" {
   canonical = "iFZg5SqT"
   tags = ["xano:quick-start"]

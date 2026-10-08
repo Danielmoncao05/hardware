@@ -1,6 +1,6 @@
-// Builds RFC 4180 CSV text from rows and an ordered column list [{key, label}].
-// Every cell is quoted with embedded quotes doubled. Cells starting with = + - @ get a leading
-// apostrophe so spreadsheet apps do not evaluate user-entered text as a formula.
+// Monta texto CSV RFC 4180 a partir das linhas e de uma lista ordenada de colunas [{key, label}].
+// Toda célula vai entre aspas, com aspas internas duplicadas. Células que começam com = + - @ ganham um
+// apóstrofo no início para planilhas não avaliarem texto digitado pelo usuário como fórmula.
 function "hhm/to_csv" {
   input {
     json colunas

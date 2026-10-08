@@ -1,6 +1,6 @@
-// Throws inputerror unless the user can be made responsible for work in the area: enabled, and holding
-// "<area>.manage" or "<area>.manage_assigned" (otherwise the assignee could not act on the record).
-// area is "maintenance" or "occurrence".
+// Lança inputerror se o usuário não puder ser responsável por trabalhos da área: precisa estar habilitado e ter
+// "<area>.manage" ou "<area>.manage_assigned" (senão o responsável não conseguiria atuar no registro).
+// area é "maintenance" ou "occurrence".
 function "hhm/require_assignable_user" {
   input {
     int user_id

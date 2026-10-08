@@ -1,32 +1,32 @@
-# Proposal
+# Proposta
 
-## Why
+## Por quê
 
-Hospitals, clinics, and maintenance teams need a shared operational record of medical equipment, its technical configuration and location, current status, service history, and reported issues. This change defines a focused equipment-management application so teams can coordinate asset lifecycle and maintenance without turning the system into a clinical record or diagnostic product.
+Hospitais, clínicas e equipes de manutenção precisam de um registro operacional compartilhado dos equipamentos médicos: configuração técnica e localização, status atual, histórico de serviços e problemas relatados. Esta mudança define um aplicativo de gestão de equipamentos focado, para as equipes coordenarem o ciclo de vida dos ativos e a manutenção sem transformar o sistema em um prontuário ou produto de diagnóstico.
 
-## What Changes
+## O que muda
 
-- Define an equipment inventory covering manufacturers, categories, models, equipment, hardware components, equipment-component assignments, locations, and equipment status.
-- Define preventive and corrective maintenance, occurrences, and an auditable maintenance history linked to equipment and responsible users.
-- Define user roles and permissions, operational dashboards, and reports for equipment and maintenance.
-- Specify a normalized relational data model, validation and referential-integrity rules, primary user flows, and the application structure.
-- Explicitly exclude medical diagnosis, patient records, and patient clinical information.
+- Define um inventário de equipamentos com fabricantes, categorias, modelos, equipamentos, componentes de hardware, instalações de componentes nos equipamentos, localizações e status dos equipamentos.
+- Define manutenção preventiva e corretiva, ocorrências e um histórico de manutenção auditável, vinculado aos equipamentos e aos responsáveis.
+- Define perfis e permissões de usuário, painéis operacionais e relatórios de equipamentos e manutenção.
+- Especifica um modelo de dados relacional normalizado, regras de validação e de integridade referencial, os principais fluxos de usuário e a estrutura do aplicativo.
+- Exclui explicitamente diagnóstico médico, prontuários e informações clínicas de pacientes.
 
-## Capabilities
+## Capacidades
 
-### New Capabilities
+### Novas capacidades
 
-- `equipment-inventory`: Manage equipment, manufacturers, categories, models, hardware components, component assignments, locations, and operational status.
-- `maintenance-operations`: Schedule and record preventive and corrective maintenance, capture equipment occurrences, and consult service history.
-- `access-and-reporting`: Manage user access and permissions and provide operational dashboards and reports.
+- `equipment-inventory`: gerenciar equipamentos, fabricantes, categorias, modelos, componentes de hardware, instalações de componentes, localizações e status operacional.
+- `maintenance-operations`: agendar e registrar manutenções preventivas e corretivas, registrar ocorrências dos equipamentos e consultar o histórico de serviços.
+- `access-and-reporting`: gerenciar o acesso e as permissões dos usuários e oferecer painéis operacionais e relatórios.
 
-### Modified Capabilities
+### Capacidades alteradas
 
-None.
+Nenhuma.
 
-## Impact
+## Impacto
 
-- Adds requirements and architecture for the existing Reflex application scaffold in `hardware/`.
-- Defines the intended Xano-backed API and relational persistence; current Xano exports include starter user and event-log tables, authentication endpoints, and role-related examples, but do not yet contain the requested equipment domain.
-- Introduces no implementation code or dependency changes in this proposal phase.
-- Requires keeping equipment data separate from patient and clinical data throughout the UI, API, persistence, and reporting surfaces.
+- Adiciona requisitos e arquitetura à base existente do aplicativo Reflex em `hardware/`.
+- Define a API e a persistência relacional pretendidas, com base no Xano; as exportações atuais do Xano têm as tabelas iniciais de usuário e de log de eventos, endpoints de autenticação e exemplos relacionados a perfis, mas ainda não têm o domínio de equipamentos pedido.
+- Não introduz código de implementação nem mudanças de dependências nesta fase de proposta.
+- Exige manter os dados dos equipamentos separados dos dados de pacientes e clínicos em toda a interface, API, persistência e relatórios.

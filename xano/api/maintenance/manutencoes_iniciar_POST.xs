@@ -1,7 +1,7 @@
-// planned -> in_progress. Optionally sets the equipment status to under_maintenance in the same
-// transaction (audited as an equipment status change). Changing equipment status requires
-// inventory.manage (decision 20): the assigned technician can start the work, but a request that also
-// asks for the status change is refused as a whole when the user lacks that permission.
+// planned -> in_progress. Opcionalmente coloca o equipamento em under_maintenance na mesma
+// transação (auditado como troca de status do equipamento). Mudar o status do equipamento exige
+// inventory.manage (decisão 20): o técnico atribuído pode iniciar o trabalho, mas uma requisição que também
+// pede a troca de status é recusada por inteiro quando o usuário não tem essa permissão.
 query "manutencoes/{manutencao_id}/iniciar" verb=POST {
   api_group = "Maintenance"
   auth = "user"
@@ -27,7 +27,7 @@ query "manutencoes/{manutencao_id}/iniciar" verb=POST {
       input = {user_id: $auth.id, area: "maintenance", responsavel_id: $before.responsavel_id}
     }
 
-    // Equipment status changes need inventory.manage, also when requested through maintenance
+    // Mudar o status do equipamento exige inventory.manage, inclusive quando pedido pela manutenção
     conditional {
       if ($input.colocar_equipamento_em_manutencao) {
         function.run "hhm/require_permission" {

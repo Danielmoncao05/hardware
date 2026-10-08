@@ -1,9 +1,9 @@
-// Maintenance list and due-work views (operational.read).
-// Due-work views follow the spec's definition of due work, shared with the dashboard and the report:
-// planned PREVENTIVE maintenance only (tipo is forced to "preventive"; completed/canceled excluded).
-// situacao = "upcoming": dated today or later (optionally within janela_dias);
-// situacao = "overdue": dated before today.
-// With no situacao, all states are listed, filterable by status/tipo/equipment/responsible/date range.
+// Lista de manutenções e listas de trabalho pendente (operational.read).
+// As listas de pendentes seguem a definição de trabalho pendente da spec, compartilhada com o painel e o relatório:
+// somente manutenções PREVENTIVAS planejadas (tipo é forçado para "preventive"; concluídas/canceladas ficam de fora).
+// situacao = "upcoming": datadas de hoje em diante (opcionalmente dentro de janela_dias);
+// situacao = "overdue": datadas antes de hoje.
+// Sem situacao, todos os estados são listados, com filtros por status/tipo/equipamento/responsável/período.
 query manutencoes verb=GET {
   api_group = "Maintenance"
   auth = "user"

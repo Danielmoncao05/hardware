@@ -1,4 +1,4 @@
-"""Maintenance: due/overdue/all lists, a month calendar, scheduling, and state transitions."""
+"""Manutenções: listas de próximas/atrasadas/todas, calendário mensal, agendamento e transições de estado."""
 
 import calendar
 import datetime as dt
@@ -56,20 +56,20 @@ class MaintenanceState(OptionsState):
     loading: bool = False
     error: str = ""
 
-    # calendar
+    # calendário
     mode: str = "list"
     cal_year: int = 0
     cal_month: int = 0
     cal_items: list[dict] = []
 
-    # dialogs
+    # diálogos
     create_open: bool = False
     transition: str = ""  # "iniciar" | "concluir" | "cancelar"
     target: dict = {}
     form_error: str = ""
     saving: bool = False
-    # Corrective maintenance opened from an occurrence (/manutencoes?ocorrencia_id=...): type, equipment
-    # and the occurrence link are fixed and sent automatically.
+    # Manutenção corretiva aberta a partir de uma ocorrência (/manutencoes?ocorrencia_id=...): tipo, equipamento
+    # e o vínculo com a ocorrência são fixos e enviados automaticamente.
     ocorrencia: dict = {}
     responsavel_padrao: str = ""
 
@@ -80,7 +80,7 @@ class MaintenanceState(OptionsState):
             return redirect
         equipamento_id = self.router.page.params.get("equipamento_id", "") or ""
         if equipamento_id != self.equipamento_id:
-            # Entering a filter shows every record of the equipment; clearing it returns to the default queue
+            # Entrar com filtro mostra todos os registros do equipamento; limpar o filtro volta à fila padrão
             self.view = "all" if equipamento_id else "upcoming"
         self.equipamento_id = equipamento_id
         self.page = 1
@@ -101,7 +101,7 @@ class MaintenanceState(OptionsState):
                 await self._open_corrective(ocorrencia_id)
 
     async def _open_corrective(self, ocorrencia_id: int):
-        """Open the create form pre-filled from an open/in-progress occurrence."""
+        """Abre o formulário de cadastro preenchido a partir de uma ocorrência aberta/em andamento."""
         try:
             occ = await self.call("GET", "maintenance", f"ocorrencias/{ocorrencia_id}")
         except api.ApiError as err:
@@ -116,7 +116,7 @@ class MaintenanceState(OptionsState):
             "equipamento": f"{occ['equipamento']['numero_patrimonio']} — {occ['equipamento']['nome']}",
             "descricao_tecnica": occ.get("descricao_tecnica") or "",
         }
-        # Managers default to the occurrence's responsible user; technicians can only assign themselves
+        # Gestores usam como padrão o responsável da ocorrência; técnicos só podem atribuir a si mesmos
         if self.can_manage_maintenance:
             self.responsavel_padrao = str(occ.get("responsavel_id") or "")
         else:
@@ -135,7 +135,7 @@ class MaintenanceState(OptionsState):
             if self.mode == "calendar":
                 first = dt.date(self.cal_year, self.cal_month, 1)
                 last = dt.date(self.cal_year, self.cal_month, calendar.monthrange(self.cal_year, self.cal_month)[1])
-                # All records of the month (paginated), so busy months are not truncated
+                # Todos os registros do mês (paginados), para meses cheios não serem cortados
                 self.cal_items = await self._fetch_all(
                     "maintenance",
                     "manutencoes",
@@ -190,7 +190,7 @@ class MaintenanceState(OptionsState):
 
     @rx.var
     def weeks(self) -> list[list[CalDay]]:
-        """Month grid (Sunday first); each day lists its maintenance records."""
+        """Grade do mês (começando no domingo); cada dia lista suas manutenções."""
         if not self.cal_month:
             return []
         by_day: dict[str, list[CalItem]] = {}
@@ -213,7 +213,7 @@ class MaintenanceState(OptionsState):
             )
         return weeks
 
-    # ---- create ----
+    # ---- cadastro ----
     @rx.event
     def set_create_open(self, value: bool):
         self.create_open = value
@@ -224,12 +224,12 @@ class MaintenanceState(OptionsState):
 
     @rx.event
     async def create(self, form: dict):
-        # Events run one at a time: a second submit queued by a double click arrives after the dialog closed
+        # Os eventos rodam um de cada vez: um segundo envio enfileirado por clique duplo chega depois que o diálogo fechou
         if not self.create_open:
             return
         self.form_error = ""
         if self.ocorrencia:
-            # Fixed by the occurrence; never taken from editable form fields
+            # Definidos pela ocorrência; nunca lidos de campos editáveis do formulário
             form = form | {"tipo": "corrective", "equipamento_id": str(self.ocorrencia["equipamento_id"]), "ocorrencia_id": str(self.ocorrencia["id"])}
         tipo = form.get("tipo") or ""
         payload = {
@@ -264,7 +264,7 @@ class MaintenanceState(OptionsState):
         await self._fetch()
         yield rx.toast.success("Manutenção corretiva registrada e vinculada à ocorrência." if linked else "Manutenção registrada.")
 
-    # ---- transitions ----
+    # ---- transições ----
     @rx.event
     def open_transition(self, action: str, record: dict):
         self.transition = action
@@ -319,7 +319,7 @@ class MaintenanceState(OptionsState):
         if action == "concluir" and result and result.get("proxima_data_sugerida"):
             yield rx.toast.info(f"Manutenção recorrente: próxima data sugerida {result['proxima_data_sugerida']}.")
 
-    # Not cached: a dependency-free cached var is computed once and would keep a stale time
+    # Sem cache: uma var em cache sem dependências é calculada uma vez só e manteria um horário desatualizado
     @rx.var(cache=False)
     def now_local(self) -> str:
         return now_local_input()
@@ -504,7 +504,7 @@ def transition_dialog() -> rx.Component:
                         s.transition,
                         (
                             "iniciar",
-                            # Equipment status changes require inventory.manage (decision 20)
+                            # Mudar o status do equipamento exige inventory.manage (decisão 20)
                             rx.cond(
                                 s.can_manage_inventory,
                                 rx.el.label(

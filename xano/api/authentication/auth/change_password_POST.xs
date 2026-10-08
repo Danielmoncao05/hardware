@@ -1,9 +1,9 @@
-// The signed-in user replaces their own password (required on first login after an administrator
-// created the account with a temporary password; also available any time afterwards).
-// Requires the current password; the new one must meet the password policy, match its confirmation,
-// and differ from the current one. Clears deve_trocar_senha so the user's permissions apply again.
-// This only ever changes the caller's own password: there is no endpoint for administrators to set or
-// reset an existing user's password.
+// O usuário logado troca a própria senha (obrigatório no primeiro acesso depois que um administrador
+// criou a conta com senha temporária; também disponível a qualquer momento depois).
+// Exige a senha atual; a nova precisa seguir a política de senhas, coincidir com a confirmação
+// e ser diferente da atual. Limpa deve_trocar_senha para as permissões do usuário voltarem a valer.
+// Só altera a senha de quem chama: não existe endpoint para administradores definirem ou
+// redefinirem a senha de um usuário existente.
 query "auth/change_password" verb=POST {
   api_group = "Authentication"
   auth = "user"

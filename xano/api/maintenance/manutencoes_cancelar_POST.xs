@@ -1,5 +1,5 @@
-// planned/in_progress -> canceled. A reason is required; the record stays in history and leaves the
-// due-work views.
+// planned/in_progress -> canceled. O motivo é obrigatório; o registro fica no histórico e sai das
+// listas de trabalho pendente.
 query "manutencoes/{manutencao_id}/cancelar" verb=POST {
   api_group = "Maintenance"
   auth = "user"

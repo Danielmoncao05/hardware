@@ -1,4 +1,4 @@
-// Technical occurrences (equipment malfunctions/observations). Never holds patient or clinical data.
+// Ocorrências técnicas (falhas/observações de equipamentos). Nunca guarda dados de pacientes ou clínicos.
 table ocorrencias {
   auth = false
 

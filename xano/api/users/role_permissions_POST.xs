@@ -1,4 +1,4 @@
-// Grants a permission to a role (users.manage). Re-granting an existing permission is a no-op.
+// Concede uma permissão a um perfil (users.manage). Conceder de novo uma permissão existente não faz nada.
 query "roles/{role_id}/permissions" verb=POST {
   api_group = "Users"
   auth = "user"

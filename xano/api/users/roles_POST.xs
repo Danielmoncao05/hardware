@@ -1,5 +1,5 @@
-// Creates a role (users.manage). The role starts active with no permissions; grant them through
-// POST roles/{role_id}/permissions. Names are unique and immutable (the seed matches roles by name).
+// Cria um perfil (users.manage). O perfil começa ativo e sem permissões; conceda-as por
+// POST roles/{role_id}/permissions. Os nomes são únicos e imutáveis (o seed localiza os perfis pelo nome).
 query roles verb=POST {
   api_group = "Users"
   auth = "user"

@@ -1,4 +1,4 @@
-"""Administrator-only user provisioning, enable/disable, role assignment, and role permissions."""
+"""Exclusivo do administrador: criação de usuários, habilitar/desabilitar, atribuição de perfil e permissões dos perfis."""
 
 from typing import TypedDict
 
@@ -57,7 +57,7 @@ class UsersState(AuthState):
 
     @rx.var
     def matrix(self) -> list[PermissionRow]:
-        """One row per permission with a granted flag per role (in self.roles order)."""
+        """Uma linha por permissão, com um indicador de concessão por perfil (na ordem de self.roles)."""
         return [
             {
                 "id": p["id"],

@@ -1,4 +1,4 @@
-// Adds a hardware component to the catalog (inventory.manage). An optional manufacturer must be active.
+// Adiciona um componente de hardware ao catálogo (inventory.manage). O fabricante, se informado, precisa estar ativo.
 query componentes verb=POST {
   api_group = "Inventory"
   auth = "user"

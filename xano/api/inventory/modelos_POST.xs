@@ -1,6 +1,6 @@
-// Creates a model (inventory.manage). Requires an existing, active manufacturer and category, and a
-// name unique within that manufacturer and category. References are checked here because the
-// datastore does not enforce them (validation.md #1).
+// Cria um modelo (inventory.manage). Exige fabricante e categoria existentes e ativos, e um
+// nome único dentro desse fabricante e categoria. As referências são verificadas aqui porque o
+// banco de dados não as garante (validation.md #1).
 query modelos verb=POST {
   api_group = "Inventory"
   auth = "user"

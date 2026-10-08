@@ -1,6 +1,6 @@
-// Edits an open (planned or in-progress) maintenance record. Reassigning the responsible user needs
-// maintenance.manage; the assigned technician may edit date, description, checklist, and recurrence.
-// Completed and canceled records are history and cannot be edited.
+// Edita uma manutenção aberta (planejada ou em andamento). Trocar o responsável exige
+// maintenance.manage; o técnico atribuído pode editar data, descrição, checklist e recorrência.
+// Registros concluídos e cancelados são histórico e não podem ser editados.
 query "manutencoes/{manutencao_id}" verb=PATCH {
   api_group = "Maintenance"
   auth = "user"

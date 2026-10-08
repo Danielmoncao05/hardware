@@ -1,4 +1,4 @@
-// Creates a manufacturer (inventory.manage). Names are unique.
+// Cria um fabricante (inventory.manage). Os nomes são únicos.
 query fabricantes verb=POST {
   api_group = "Inventory"
   auth = "user"

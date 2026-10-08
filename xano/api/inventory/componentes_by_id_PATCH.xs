@@ -1,6 +1,6 @@
-// Updates or activates/deactivates a catalog component (inventory.manage). Send "" to clear an optional
-// text field and fabricante_id = 0 to remove the manufacturer. Deactivated components stay on existing
-// assignments but cannot be newly assigned.
+// Atualiza ou ativa/desativa um componente do catálogo (inventory.manage). Envie "" para limpar um campo de
+// texto opcional e fabricante_id = 0 para remover o fabricante. Componentes desativados continuam nas
+// instalações existentes, mas não podem ser instalados de novo.
 query "componentes/{componente_id}" verb=PATCH {
   api_group = "Inventory"
   auth = "user"

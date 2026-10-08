@@ -1,4 +1,4 @@
-// Lists models with their manufacturer and category names (operational.read).
+// Lista os modelos com os nomes do fabricante e da categoria (operational.read).
 query modelos verb=GET {
   api_group = "Inventory"
   auth = "user"

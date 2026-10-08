@@ -1,12 +1,12 @@
-"""Static check: no patient or clinical fields, endpoints, or screens exist (spec: Keep inventory data
-technical and non-clinical; Generate operational reports). Runs without a backend."""
+"""Verificação estática: não existem campos, endpoints ou telas de pacientes ou clínicos (spec: Manter os dados de
+inventário técnicos e não clínicos; Gerar relatórios operacionais). Roda sem backend."""
 
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Identifiers that would indicate patient/clinical data (Portuguese and English)
+# Identificadores que indicariam dados de pacientes/clínicos (em português e inglês)
 FORBIDDEN = re.compile(
     r"\b\w*(paciente|patient|prontuario|prontuário|diagnos\w*|clinic\w*|clínic\w*|cpf|cns|cartao_sus|medical_record|mrn|leito|bed_number|prescri\w*)\w*\b",
     re.IGNORECASE,
@@ -14,7 +14,7 @@ FORBIDDEN = re.compile(
 
 
 def _schema_field_names(xs: str) -> list[str]:
-    """Field names declared in a XanoScript table schema block."""
+    """Nomes de campos declarados no bloco schema de uma tabela XanoScript."""
     block = re.search(r"schema\s*\{(.*)\n  \}", xs, re.S)
     if not block:
         return []

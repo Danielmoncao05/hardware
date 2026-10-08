@@ -1,6 +1,6 @@
-// Lists the permission keys granted to an enabled user (empty for disabled users, inactive roles, and
-// users who must still replace a temporary password).
-// Used by auth/me so the frontend can hide controls; the API still checks every operation.
+// Lista as chaves de permissão concedidas a um usuário habilitado (vazia para usuários desabilitados, perfis inativos e
+// usuários que ainda precisam trocar uma senha temporária).
+// Usada por auth/me para o frontend esconder controles; a API continua verificando toda operação.
 function "hhm/user_permissions" {
   input {
     int user_id

@@ -1,4 +1,4 @@
-// Moves equipment to another active location (inventory.manage) and audits the previous and new location.
+// Move o equipamento para outra localização ativa (inventory.manage) e audita a localização anterior e a nova.
 query "equipamentos/{equipamento_id}/mover" verb=POST {
   api_group = "Inventory"
   auth = "user"

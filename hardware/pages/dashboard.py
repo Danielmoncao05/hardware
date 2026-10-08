@@ -1,4 +1,4 @@
-"""Operational dashboard: all figures come from GET dashboard, computed server-side."""
+"""Painel operacional: todos os números vêm de GET dashboard, calculados no servidor."""
 
 import reflex as rx
 
@@ -68,7 +68,7 @@ class DashboardState(OptionsState):
 
     @rx.var
     def severidades(self) -> list[dict]:
-        """Open occurrences per severity, split by status (open / in progress)."""
+        """Ocorrências abertas por severidade, separadas por status (aberta / em andamento)."""
         por_sev = self.data.get("ocorrencias_abertas", {}).get("por_severidade", {})
         rows = []
         for k in ["critical", "high", "medium", "low"]:

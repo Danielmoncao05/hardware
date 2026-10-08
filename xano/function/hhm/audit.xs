@@ -1,5 +1,5 @@
-// Records an audit event: actor, action, affected record, and before/after details.
-// The only writer of audit rows for domain changes; no endpoint edits or deletes event_log.
+// Registra um evento de auditoria: autor, ação, registro afetado e detalhes de antes/depois.
+// É o único que grava linhas de auditoria para mudanças de domínio; nenhum endpoint edita ou apaga event_log.
 function "hhm/audit" {
   input {
     int? user_id

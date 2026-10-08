@@ -1,5 +1,5 @@
-// Records the removal of an installed component (inventory.manage). The assignment row is kept with
-// removido_em so installation/removal history stays queryable; it is never deleted.
+// Registra a remoção de um componente instalado (inventory.manage). A linha da instalação é mantida com
+// removido_em para o histórico de instalação/remoção continuar consultável; ela nunca é apagada.
 query "equipamentos/{equipamento_id}/componentes/{atribuicao_id}/remover" verb=POST {
   api_group = "Inventory"
   auth = "user"
@@ -37,7 +37,7 @@ query "equipamentos/{equipamento_id}/componentes/{atribuicao_id}/remover" verb=P
       output = ["id", "status"]
     } as $equip
 
-    // Decommissioned equipment is kept read-only as history (same rule as install/move/status)
+    // Equipamento descomissionado fica somente leitura, como histórico (mesma regra de instalar/mover/status)
     precondition ($equip.status != "decommissioned") {
       error_type = "inputerror"
       error = "Components of decommissioned equipment cannot be changed."

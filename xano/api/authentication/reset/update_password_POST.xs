@@ -1,7 +1,7 @@
-// Disabled. It set a new password for any signed-in session without asking for the current one, so a
-// stolen session could take over the account. Use auth/change_password (requires the current password)
-// when signed in, or reset/confirm with the emailed link when the password is forgotten.
-// The endpoint is kept (rather than deleted) so old clients get an explicit refusal.
+// Desativado. Ele definia uma nova senha para qualquer sessão logada sem pedir a atual, então uma
+// sessão roubada podia tomar a conta. Use auth/change_password (exige a senha atual)
+// quando estiver logado, ou reset/confirm com o link do e-mail quando esquecer a senha.
+// O endpoint é mantido (em vez de apagado) para que clientes antigos recebam uma recusa explícita.
 query "reset/update_password" verb=POST {
   api_group = "Authentication"
   auth = "user"

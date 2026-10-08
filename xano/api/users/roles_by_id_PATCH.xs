@@ -1,7 +1,7 @@
-// Updates a role's description or activates/deactivates it (users.manage).
-// Deactivation is refused for the administrator role (the deployment must keep a way to manage access)
-// and for any role still assigned to enabled users (they would silently lose every permission);
-// reassign those users first. Roles are never deleted, so historical audit references stay valid.
+// Atualiza a descrição de um perfil ou o ativa/desativa (users.manage).
+// A desativação é recusada para o perfil administrator (o sistema precisa manter um jeito de gerenciar acessos)
+// e para qualquer perfil ainda atribuído a usuários habilitados (eles perderiam todas as permissões sem aviso);
+// reatribua esses usuários antes. Perfis nunca são apagados, para as referências históricas da auditoria continuarem válidas.
 query "roles/{role_id}" verb=PATCH {
   api_group = "Users"
   auth = "user"

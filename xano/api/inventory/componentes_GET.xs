@@ -1,4 +1,4 @@
-// Lists the hardware component catalog (operational.read).
+// Lista o catálogo de componentes de hardware (operational.read).
 query componentes verb=GET {
   api_group = "Inventory"
   auth = "user"

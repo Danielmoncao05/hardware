@@ -1,6 +1,6 @@
-"""Hospital equipment management: inventory, maintenance, occurrences, and reporting.
+"""Gestão de equipamentos hospitalares: inventário, manutenção, ocorrências e relatórios.
 
-Technical equipment data only: no patient records, clinical data, or diagnosis.
+Somente dados técnicos dos equipamentos: nada de registros de pacientes, dados clínicos ou diagnósticos.
 """
 
 import reflex as rx
@@ -26,12 +26,12 @@ from .state import AuthState
 
 app = rx.App()
 
-# Public: authentication and account recovery (no sign-up)
+# Públicas: autenticação e recuperação de conta (sem cadastro público)
 app.add_page(login_page, route="/login", title="Entrar")
 app.add_page(forgot_page, route="/recuperar-senha", title="Recuperar senha")
 app.add_page(reset_page, route="/reset-password", title="Definir nova senha")
 
-# Authenticated: each on_load re-checks the session and the page's permission
+# Autenticadas: cada on_load verifica de novo a sessão e a permissão da página
 app.add_page(dashboard_page, route="/", title="Painel", on_load=DashboardState.on_load)
 app.add_page(equipment_detail_page, route="/equipamentos/[id]", title="Equipamento", on_load=EquipmentDetailState.on_load)
 app.add_page(equipment_form_page, route="/equipamentos/[id]/editar", title="Editar equipamento", on_load=EquipmentFormState.on_load)
@@ -42,7 +42,7 @@ app.add_page(maintenance_page, route="/manutencoes", title="Manutenções", on_l
 app.add_page(occurrences_page, route="/ocorrencias", title="Ocorrências", on_load=OccurrenceState.on_load)
 app.add_page(reports_page, route="/relatorios", title="Relatórios", on_load=ReportsState.on_load)
 app.add_page(users_page, route="/usuarios", title="Usuários e perfis", on_load=UsersState.on_load)
-# Password change: required first step after an administrator-issued temporary password (session only)
+# Troca de senha: primeiro passo obrigatório após uma senha temporária definida pelo administrador (só exige sessão)
 app.add_page(change_password_page, route="/trocar-senha", title="Alterar senha", on_load=ChangePasswordState.on_load)
-# Signed in but without the page's permission (requires only a session, so guards never loop)
+# Logado, mas sem a permissão da página (só exige sessão, então os guards nunca entram em loop)
 app.add_page(no_access_page, route="/sem-acesso", title="Acesso não permitido", on_load=AuthState.require_login)

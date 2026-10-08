@@ -1,7 +1,7 @@
-// Registers equipment (inventory.manage). Manufacturer and category come from the model; supplying a
-// conflicting fabricante_id/categoria_id is rejected. The location must be active.
-// Initial status follows the status-change rules: equipment cannot be created decommissioned, and
-// creating it out of service requires a reason (recorded in the audit event).
+// Cadastra um equipamento (inventory.manage). Fabricante e categoria vêm do modelo; informar
+// fabricante_id/categoria_id conflitantes é recusado. A localização precisa estar ativa.
+// O status inicial segue as regras de troca de status: não dá para cadastrar já descomissionado, e
+// cadastrar fora de serviço exige um motivo (registrado no evento de auditoria).
 query equipamentos verb=POST {
   api_group = "Inventory"
   auth = "user"

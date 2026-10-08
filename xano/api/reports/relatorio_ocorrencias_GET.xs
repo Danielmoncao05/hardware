@@ -1,6 +1,6 @@
-// Occurrence report (reports.read): open or resolved occurrences with equipment and location.
-// abertas = true limits to open and in-progress; de/ate filter the report date.
-// formato = "csv" exports every matching row (up to 10,000) with the same filters.
+// Relatório de ocorrências (reports.read): ocorrências abertas ou resolvidas, com equipamento e localização.
+// abertas = true limita às abertas e em andamento; de/ate filtram a data do relato.
+// formato = "csv" exporta todas as linhas encontradas (até 10.000) com os mesmos filtros.
 query "relatorios/ocorrencias" verb=GET {
   api_group = "Reports"
   auth = "user"

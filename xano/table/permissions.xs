@@ -1,4 +1,4 @@
-// Explicit permission keys checked by every protected API operation.
+// Chaves de permissão explícitas, verificadas por toda operação protegida da API.
 table permissions {
   auth = false
 
