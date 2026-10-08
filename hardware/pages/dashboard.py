@@ -90,15 +90,15 @@ class DashboardState(OptionsState):
 
     @rx.var
     def atrasadas(self) -> list[dict]:
-        return self.data.get("preventivas_atrasadas", {}).get("itens", [])
+        return (self.data.get("preventivas_atrasadas") or {}).get("itens") or []
 
     @rx.var
     def proximas(self) -> list[dict]:
-        return self.data.get("preventivas_proximas", {}).get("itens", [])
+        return (self.data.get("preventivas_proximas") or {}).get("itens") or []
 
     @rx.var
     def recentes(self) -> list[dict]:
-        return self.data.get("manutencoes_recentes", {}).get("itens", [])
+        return (self.data.get("manutencoes_recentes") or {}).get("itens") or []
 
     @rx.var
     def total_ativos(self) -> int:

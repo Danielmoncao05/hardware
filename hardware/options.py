@@ -78,7 +78,7 @@ class OptionsState(AuthState):
         preselect_id mantém selecionável um equipamento pré-filtrado mesmo que ele não esteja nos resultados."""
         self.equip_searching = True
         try:
-            page = await self.call("GET", "inventory", "equipamentos", params={"q": query.strip() or None, "per_page": 25})
+            page = api.as_page(await self.call("GET", "inventory", "equipamentos", params={"q": query.strip() or None, "per_page": 25}))
             options = [{"value": str(e["id"]), "label": f"{e['numero_patrimonio']} — {e['nome']}"} for e in page["items"]]
             if preselect_id and preselect_id not in {o["value"] for o in options}:
                 try:

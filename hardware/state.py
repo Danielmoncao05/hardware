@@ -96,15 +96,18 @@ class AuthState(rx.State):
                 self._clear_session()
             raise
 
-    async def _cached_list(self, group: str, path: str, params: dict) -> Any:
+    async def _cached_list(self, group: str, path: str, params: dict) -> dict:
         """GET de uma página de listagem, reaproveitado por LIST_CACHE_TTL segundos. Voltar a uma aba ou página
-        já vista fica instantâneo e economiza requisições do plano Free do Xano."""
+        já vista fica instantâneo e economiza requisições do plano Free do Xano. Sempre devolve o formato de
+        página {"items", "nextPage", "itemsTotal"} (ver api.as_page)."""
         now = time.time()
         key = f"{group}|{path}|{json.dumps(params, sort_keys=True, default=str)}"
         hit = self._list_cache.get(key)
         if hit and now - hit[0] < LIST_CACHE_TTL:
             return hit[1]
-        result = await self.call("GET", group, path, params=params)
+        result = api.as_page(
+            await self.call("GET", group, path, params=params), params.get("page", 1), params.get("per_page", 25)
+        )
         fresh = {k: v for k, v in self._list_cache.items() if now - v[0] < LIST_CACHE_TTL}
         self._list_cache = fresh | {key: (now, result)}
         return result
@@ -195,6 +198,9 @@ class AuthState(rx.State):
         page = 1
         while len(items) < limit:
             result = await self.call("GET", group, path, params=(params or {}) | {"page": page, "per_page": page_size})
+            if isinstance(result, list):
+                # O Xano ignorou a paginação e devolveu tudo de uma vez (ver api.as_page)
+                return result[:limit]
             items.extend(result["items"])
             if result.get("nextPage") is None:
                 break

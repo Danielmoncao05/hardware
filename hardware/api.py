@@ -50,6 +50,22 @@ class ApiError(Exception):
         return self.status == 401
 
 
+def as_page(result: Any, page: int = 1, per_page: int = 25) -> dict:
+    """Normaliza a resposta de uma listagem paginada para {"items", "nextPage", "itemsTotal"}.
+
+    O Xano às vezes ignora o bloco de paginação e devolve a lista inteira (sem metadados). Nesse caso a página
+    pedida é recortada aqui, para as telas funcionarem igual nos dois formatos."""
+    if isinstance(result, dict):
+        return result
+    rows = list(result or [])
+    start = (page - 1) * per_page
+    return {
+        "items": rows[start : start + per_page],
+        "nextPage": page + 1 if len(rows) > start + per_page else None,
+        "itemsTotal": len(rows),
+    }
+
+
 def _url(group: str, path: str) -> str:
     return f"{XANO_BASE_URL}/api:{GROUPS[group]}/{path.lstrip('/')}"
 

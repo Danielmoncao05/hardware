@@ -131,6 +131,16 @@ def test_local_tabs_follow_api_rules():
     assert page_slice(list(range(30)), 2) == (list(range(25, 30)), False)
 
 
+def test_as_page_accepts_a_plain_list():
+    """O Xano às vezes ignora a paginação e devolve a lista inteira; as telas quebravam com TypeError."""
+    page = {"items": [1], "nextPage": 2, "itemsTotal": 30}
+    assert api.as_page(page) is page
+    rows = list(range(30))
+    assert api.as_page(rows, 1, 25) == {"items": list(range(25)), "nextPage": 2, "itemsTotal": 30}
+    assert api.as_page(rows, 2, 25) == {"items": list(range(25, 30)), "nextPage": None, "itemsTotal": 30}
+    assert api.as_page(None) == {"items": [], "nextPage": None, "itemsTotal": 0}
+
+
 def test_now_local_vars_are_not_cached():
     """Uma var em cache sem dependências é calculada uma vez só, deixando desatualizado o horário pré-preenchido."""
     from hardware.pages.maintenance import MaintenanceState

@@ -8,7 +8,7 @@ import reflex as rx
 
 from .. import api
 from ..components import EQUIP_STATUS, MAINT_STATUS, MAINT_TYPE, OCC_STATUS, SEVERITY, empty_row, error_callout, layout, native_select, pager, submit_button, text_input
-from ..options import OptionsState, ms_to_local, page_slice, to_int
+from ..options import OptionsState, ms_to_local, to_int
 
 REPORTS = {
     "inventario": {
@@ -108,15 +108,9 @@ class ReportsState(OptionsState):
         self.error = ""
         try:
             result = await self._cached_list("reports", REPORTS[self.report]["path"], self._params() | {"page": self.page, "per_page": 50})
-            if isinstance(result, list):
-                # Os endpoints de relatório paginam com variáveis ($page/$per_page) e o Xano às vezes ignora a
-                # paginação e devolve a lista inteira: nesse caso a página é recortada aqui
-                items, self.has_next = page_slice(result, self.page, 50)
-                self.total = len(result)
-            else:
-                items = result["items"]
-                self.total = result.get("itemsTotal") or len(items)
-                self.has_next = result.get("nextPage") is not None
+            items = result["items"]
+            self.total = result.get("itemsTotal") or len(items)
+            self.has_next = result.get("nextPage") is not None
             keys = [k for k, _ in REPORTS[self.report]["columns"]]
             self.rows = [[self._fmt(k, item.get(k)) for k in keys] for item in items]
         except api.ApiError as err:
@@ -177,17 +171,21 @@ class ReportsState(OptionsState):
     async def _fetch_audit(self):
         f = self.audit_filters
         try:
-            result = await self.call(
-                "GET",
-                "reports",
-                "auditoria",
-                params={
-                    "action": f.get("action") or None,
-                    "entidade": f.get("entidade") or None,
-                    "registro_id": to_int(f.get("registro_id")),
-                    "page": self.audit_page,
-                    "per_page": 50,
-                },
+            result = api.as_page(
+                await self.call(
+                    "GET",
+                    "reports",
+                    "auditoria",
+                    params={
+                        "action": f.get("action") or None,
+                        "entidade": f.get("entidade") or None,
+                        "registro_id": to_int(f.get("registro_id")),
+                        "page": self.audit_page,
+                        "per_page": 50,
+                    },
+                ),
+                self.audit_page,
+                50,
             )
             self.audit_rows = [
                 {
