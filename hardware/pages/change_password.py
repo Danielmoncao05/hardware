@@ -8,7 +8,7 @@ só uma sessão, nunca uma permissão, então os guards sempre podem redireciona
 import reflex as rx
 
 from .. import api
-from ..components import error_callout, submit_button, text_input
+from ..components import account_shell, error_callout, submit_button, text_input
 from ..state import AuthState
 
 
@@ -67,67 +67,56 @@ class ChangePasswordState(AuthState):
 
 def change_password_page() -> rx.Component:
     s = ChangePasswordState
-    return rx.center(
-        rx.card(
-            rx.vstack(
-                rx.heading("Alterar senha", size="6", as_="h1"),
-                rx.cond(
-                    s.must_change_password,
-                    rx.callout(
-                        "Sua conta foi criada com uma senha temporária. Defina uma senha pessoal para continuar.",
-                        icon="key_round",
-                        color_scheme="amber",
-                        role="status",
-                    ),
-                    rx.fragment(),
-                ),
-                rx.form(
-                    rx.vstack(
-                        error_callout(s.error),
-                        text_input(
-                            "Senha atual (ou temporária)",
-                            "senha_atual",
-                            required=True,
-                            type_="password",
-                            custom_attrs={"autocomplete": "current-password"},
-                            auto_focus=True,
-                        ),
-                        text_input(
-                            "Nova senha",
-                            "nova_senha",
-                            required=True,
-                            type_="password",
-                            hint="Mínimo de 8 caracteres, com pelo menos uma letra e um número.",
-                            custom_attrs={"autocomplete": "new-password"},
-                        ),
-                        text_input(
-                            "Confirmar nova senha",
-                            "confirmar_senha",
-                            required=True,
-                            type_="password",
-                            custom_attrs={"autocomplete": "new-password"},
-                        ),
-                        submit_button("Salvar nova senha", loading=s.saving, width="100%"),
-                        spacing="3",
-                    ),
-                    key=s.form_key,
-                    on_submit=s.change,
-                    reset_on_submit=False,
-                    aria_label="Alterar senha",
-                ),
-                rx.hstack(
-                    rx.cond(s.must_change_password, rx.fragment(), rx.link("Voltar", href="/painel", size="2")),
-                    rx.spacer(),
-                    rx.button("Sair", variant="ghost", size="1", on_click=AuthState.logout),
-                    width="100%",
-                ),
-                spacing="4",
-                width="100%",
+    return account_shell(
+        rx.heading("Alterar senha", size="6", as_="h1"),
+        rx.cond(
+            s.must_change_password,
+            rx.callout(
+                "Sua conta foi criada com uma senha temporária. Defina uma senha pessoal para continuar.",
+                icon="key_round",
+                color_scheme="amber",
+                role="status",
             ),
-            width="100%",
-            max_width="26rem",
-            size="3",
+            rx.fragment(),
         ),
-        min_height="100vh",
-        padding="1rem",
+        rx.form(
+            rx.vstack(
+                error_callout(s.error),
+                text_input(
+                    "Senha atual (ou temporária)",
+                    "senha_atual",
+                    required=True,
+                    type_="password",
+                    custom_attrs={"autocomplete": "current-password"},
+                    auto_focus=True,
+                ),
+                text_input(
+                    "Nova senha",
+                    "nova_senha",
+                    required=True,
+                    type_="password",
+                    hint="Mínimo de 8 caracteres, com pelo menos uma letra e um número.",
+                    custom_attrs={"autocomplete": "new-password"},
+                ),
+                text_input(
+                    "Confirmar nova senha",
+                    "confirmar_senha",
+                    required=True,
+                    type_="password",
+                    custom_attrs={"autocomplete": "new-password"},
+                ),
+                submit_button("Salvar nova senha", loading=s.saving, width="100%"),
+                spacing="3",
+            ),
+            key=s.form_key,
+            on_submit=s.change,
+            reset_on_submit=False,
+            aria_label="Alterar senha",
+        ),
+        rx.hstack(
+            rx.cond(s.must_change_password, rx.fragment(), rx.link("Voltar", href="/painel", size="2")),
+            rx.spacer(),
+            rx.button("Sair", variant="ghost", size="1", on_click=AuthState.logout),
+            width="100%",
+        ),
     )

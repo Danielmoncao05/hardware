@@ -387,4 +387,5 @@ def reports_page() -> rx.Component:
             default_value="relatorios",
             width="100%",
         ),
+        subtitle="Relatórios operacionais com filtros e exportação em CSV",
     )

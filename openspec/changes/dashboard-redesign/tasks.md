@@ -26,7 +26,7 @@
 - [ ] 3.6 Cartões de equipamentos críticos com motivo, "Abrir manutenção corretiva" (só com permissão de manutenção) e "Ver ocorrências", e mensagem quando não há críticos; verificar que a ação abre o formulário corretivo já vinculado e que um visualizador não a vê
 - [ ] 3.7 Mover filtros, totais por status e categoria, preventivas atrasadas e atividade recente para a seção "Mais detalhes" abaixo do novo layout; verificar que o filtro de localização muda todas as seções
 
-- [ ] 3.8 Animação de entrada (design, decisão 6): `assets/dashboard.css` com a classe `hhm-enter` registrada no app e aplicada aos indicadores e às seções em sequência; verificar no navegador que os blocos entram em sequência e que, com "reduzir movimento" ligado no sistema, aparecem sem animação
+- [ ] 3.8 Animação de entrada (design, decisão 6): `assets/app.css` com a classe `hhm-enter` registrada no app e aplicada aos indicadores e às seções em sequência; verificar no navegador que os blocos entram em sequência e que, com "reduzir movimento" ligado no sistema, aparecem sem animação
 
 ## 4. Verificação
 

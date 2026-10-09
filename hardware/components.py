@@ -222,16 +222,39 @@ NAV = [
 ]
 
 
+# Telas que pertencem a uma área sem estar sob o caminho dela
+NAV_EXTRA_PATHS = {"/equipamentos": ["/novo-equipamento"]}
+
+
+def is_active_path(path: str, href: str) -> bool:
+    """A URL atual pertence ao item do menu: o próprio caminho, um caminho abaixo dele (/equipamentos/5) ou uma
+    tela extra da área (/novo-equipamento). Mesma regra de nav_link, para teste."""
+    candidates = [href, *NAV_EXTRA_PATHS.get(href, [])]
+    return any(path == c or path.startswith(c + "/") for c in candidates)
+
+
 def nav_link(text: str, href: str, icon: str) -> rx.Component:
+    path = AuthState.router.url.path
+    active = (path == href) | path.startswith(href + "/")
+    for extra in NAV_EXTRA_PATHS.get(href, []):
+        active = active | (path == extra) | path.startswith(extra + "/")
     return rx.link(
-        rx.hstack(rx.icon(icon, size=18, aria_hidden="true"), rx.text(text, size="3"), spacing="2", align="center"),
+        rx.hstack(
+            rx.icon(icon, size=18, aria_hidden="true"),
+            rx.text(text, size="3", weight=rx.cond(active, "medium", "regular")),
+            spacing="2",
+            align="center",
+        ),
         href=href,
         underline="none",
         padding_x="0.75rem",
         padding_y="0.5rem",
         border_radius="var(--radius-2)",
         width="100%",
-        color=rx.color("gray", 12),
+        color=rx.cond(active, rx.color("accent", 11), rx.color("gray", 12)),
+        background=rx.cond(active, rx.color("accent", 3), "transparent"),
+        box_shadow=rx.cond(active, f"inset 3px 0 0 {rx.color('accent', 9)}", "none"),
+        aria_current=rx.cond(active, "page", "false"),
         _hover={"background": rx.color("accent", 3)},
     )
 
@@ -289,6 +312,43 @@ def user_menu() -> rx.Component:
     )
 
 
+def brand_mark(size: str = "5") -> rx.Component:
+    """Marca HospitalTech: ícone num quadrado da cor da marca + nome (barra superior e telas de conta)."""
+    box = {"5": "2rem", "6": "2.5rem"}.get(size, "2rem")
+    return rx.hstack(
+        rx.center(
+            rx.icon("heart_pulse", size=18 if size == "5" else 22, color="white", aria_hidden="true"),
+            background=rx.color("accent", 9),
+            border_radius="var(--radius-3)",
+            width=box,
+            height=box,
+            flex_shrink="0",
+        ),
+        rx.text(BRAND, size=size, weight="bold", color=rx.color("accent", 11)),
+        spacing="2",
+        align="center",
+    )
+
+
+def account_shell(*children, max_width: str = "26rem") -> rx.Component:
+    """Telas de conta (login, recuperar, redefinir e trocar senha): marca acima do cartão e fundo com a cor da marca
+    (tokens do tema, então funciona no claro e no escuro)."""
+    return rx.center(
+        rx.vstack(
+            rx.link(brand_mark("6"), href="/", underline="none", aria_label=BRAND + ", página inicial"),
+            rx.card(rx.vstack(*children, spacing="4", width="100%"), width="100%", size="3", box_shadow="var(--shadow-4)"),
+            rx.text(BRAND, " · Gestão de equipamentos hospitalares", size="1", color_scheme="gray"),
+            align="center",
+            spacing="5",
+            width="100%",
+            max_width=max_width,
+        ),
+        min_height="100vh",
+        padding="1rem",
+        background=f"radial-gradient(ellipse at top, {rx.color('accent', 4)} 0%, {rx.color('gray', 1)} 65%)",
+    )
+
+
 def top_bar() -> rx.Component:
     """Barra superior das telas autenticadas: marca à esquerda; tema, alertas e usuário à direita."""
     mobile_menu = rx.box(
@@ -316,7 +376,7 @@ def top_bar() -> rx.Component:
         rx.hstack(
             mobile_menu,
             rx.link(
-                rx.text(BRAND, size="5", weight="bold", color=rx.color("accent", 11)),
+                brand_mark(),
                 href="/painel",
                 underline="none",
                 aria_label=BRAND + ", ir para o painel",
@@ -340,9 +400,9 @@ def top_bar() -> rx.Component:
     )
 
 
-def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Component:
+def layout(title: str, *children, actions: rx.Component | None = None, subtitle: str | None = None) -> rx.Component:
     """Estrutura das páginas autenticadas: barra superior; abaixo, barra lateral de navegação no desktop (no
-    tablet/celular a navegação fica no menu recolhível da barra superior)."""
+    tablet/celular a navegação fica no menu recolhível da barra superior). subtitle: para que a tela serve."""
     sidebar = rx.box(
         rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
         padding="0.75rem",
@@ -362,7 +422,11 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
             rx.el.main(
                 rx.vstack(
                     rx.hstack(
-                        rx.heading(title, size="6", as_="h1"),
+                        rx.vstack(
+                            rx.heading(title, size="6", as_="h1"),
+                            rx.text(subtitle, size="2", color_scheme="gray") if subtitle else rx.fragment(),
+                            spacing="1",
+                        ),
                         rx.spacer(),
                         actions if actions is not None else rx.fragment(),
                         align="center",
@@ -373,11 +437,14 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
                     *children,
                     spacing="4",
                     width="100%",
+                    max_width="96rem",
                     padding=["1rem", "1rem", "1.5rem"],
                 ),
                 id="conteudo",
                 width="100%",
                 min_width="0",
+                min_height=f"calc(100vh - {TOP_BAR_HEIGHT})",
+                background=rx.color("gray", 2),
             ),
             spacing="0",
             align="start",
@@ -393,7 +460,20 @@ def loading_overlay(cond) -> rx.Component:
 
 
 def empty_row(cols: int, text: str = "Nenhum registro encontrado.") -> rx.Component:
-    return rx.table.row(rx.table.cell(rx.text(text, color_scheme="gray"), col_span=cols))
+    """Linha única de tabela vazia: ícone e mensagem centralizados."""
+    return rx.table.row(
+        rx.table.cell(
+            rx.vstack(
+                rx.icon("inbox", size=28, color=rx.color("gray", 8), aria_hidden="true"),
+                rx.text(text, size="2", color_scheme="gray"),
+                align="center",
+                spacing="2",
+                padding_y="1.5rem",
+                width="100%",
+            ),
+            col_span=cols,
+        )
+    )
 
 
 def pager(page, has_next, on_prev, on_next) -> rx.Component:

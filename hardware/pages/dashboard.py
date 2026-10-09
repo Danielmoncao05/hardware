@@ -210,7 +210,7 @@ ENTER_STEP_MS = 60
 
 
 def enter(child: rx.Component, step: int, **props) -> rx.Component:
-    """Envolve um bloco com a animação de entrada (assets/dashboard.css), atrasada conforme a posição."""
+    """Envolve um bloco com a animação de entrada (assets/app.css), atrasada conforme a posição."""
     return rx.box(child, class_name="hhm-enter", style={"--hhm-delay": f"{step * ENTER_STEP_MS}ms"}, width="100%", **props)
 
 
@@ -587,14 +587,6 @@ def dashboard_page() -> rx.Component:
     s = DashboardState
     return layout(
         "Painel",
-        rx.hstack(
-            rx.text("Resumo operacional do parque de equipamentos", color_scheme="gray", size="2"),
-            rx.spacer(),
-            rx.text(s.hoje, size="2", weight="medium"),
-            width="100%",
-            wrap="wrap",
-            align="center",
-        ),
         rx.box(
             native_select(
                 "Localização",
@@ -633,4 +625,6 @@ def dashboard_page() -> rx.Component:
             width="100%",
         ),
         enter(details(), 8),
+        subtitle="Resumo operacional do parque de equipamentos",
+        actions=rx.badge(rx.icon("calendar", size=14), s.hoje, variant="soft", color_scheme="gray", size="2"),
     )

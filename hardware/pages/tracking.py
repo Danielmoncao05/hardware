@@ -281,4 +281,5 @@ def tracking_page() -> rx.Component:
             align="center",
             spacing="3",
         ),
+        subtitle="Situação de cada equipamento agora: crítico, atenção ou OK",
     )

@@ -380,4 +380,5 @@ def occurrences_page() -> rx.Component:
             rx.button(rx.icon("plus", size=16), "Registrar ocorrência", on_click=s.set_report_open(True)),
             rx.fragment(),
         ),
+        subtitle="Problemas técnicos relatados nos equipamentos, do registro à resolução",
     )

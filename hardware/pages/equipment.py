@@ -179,6 +179,7 @@ def equipment_list_page() -> rx.Component:
             rx.link(rx.button(rx.icon("plus", size=16), "Novo equipamento"), href="/novo-equipamento"),
             rx.fragment(),
         ),
+        subtitle="Inventário dos equipamentos ativos: busque, filtre e abra o histórico de cada um",
     )
 
 
@@ -376,6 +377,7 @@ def equipment_form_page() -> rx.Component:
             width="100%",
             max_width="56rem",
         ),
+        subtitle="Identificação, modelo, localização e dados de aquisição do equipamento",
     )
 
 
@@ -536,6 +538,19 @@ class EquipmentDetailState(OptionsState):
 
 def info(label: str, value) -> rx.Component:
     return rx.vstack(rx.text(label, size="1", color_scheme="gray"), rx.text(value, size="3"), spacing="0")
+
+
+def info_card(title: str, icon: str, *items) -> rx.Component:
+    """Grupo de dados da visão geral do equipamento."""
+    return rx.card(
+        rx.vstack(
+            rx.hstack(rx.icon(icon, size=16, color=rx.color("accent", 11), aria_hidden="true"), rx.heading(title, size="3", as_="h2"), align="center", spacing="2"),
+            *items,
+            spacing="3",
+            width="100%",
+        ),
+        width="100%",
+    )
 
 
 
@@ -739,7 +754,14 @@ def equipment_detail_page() -> rx.Component:
         rx.cond(e["nome"], e["nome"].to(str), "Equipamento"),
         error_callout(s.error),
         loading_overlay(s.loading),
-        rx.hstack(badge(EQUIP_STATUS, e["status"]), rx.text("Patrimônio ", e["numero_patrimonio"], color_scheme="gray"), align="center"),
+        rx.hstack(
+            badge(EQUIP_STATUS, e["status"]),
+            rx.badge(rx.icon("tag", size=12), "Patrimônio ", e["numero_patrimonio"], variant="outline", color_scheme="gray"),
+            rx.cond(e["numero_serie"], rx.badge("Série ", e["numero_serie"].to(str), variant="outline", color_scheme="gray"), rx.fragment()),
+            align="center",
+            spacing="2",
+            wrap="wrap",
+        ),
         rx.tabs.root(
             rx.tabs.list(
                 rx.tabs.trigger("Visão geral", value="geral"),
@@ -748,29 +770,45 @@ def equipment_detail_page() -> rx.Component:
             ),
             rx.tabs.content(
                 rx.grid(
-                    info("Categoria", s.categoria_nome),
-                    info("Fabricante", s.fabricante_nome),
-                    info("Modelo", s.modelo_nome),
-                    info("Localização", s.localizacao_nome),
-                    info("Número de série", rx.cond(e["numero_serie"], e["numero_serie"].to(str), "—")),
-                    info("Ano de fabricação", rx.cond(e["ano_fabricacao"], e["ano_fabricacao"].to(str), "—")),
-                    info("Data de aquisição", date_text(e["data_aquisicao"])),
-                    info("Valor de aquisição", rx.cond(e["valor_aquisicao"], "R$ " + e["valor_aquisicao"].to(str), "—")),
-                    info("Vida útil (anos)", rx.cond(e["vida_util_anos"], e["vida_util_anos"].to(str), "—")),
-                    info("Última manutenção", timestamp_text(e["ultima_manutencao"], "DD/MM/YYYY")),
-                    info("Próxima manutenção preventiva", date_text(e["proxima_manutencao"])),
-                    info("Ocorrências abertas", e["ocorrencias_abertas"].to(str)),
-                    columns=rx.breakpoints(initial="1", sm="2", lg="3"),
-                    spacing="4",
+                    info_card(
+                        "Identificação",
+                        "monitor",
+                        info("Categoria", s.categoria_nome),
+                        info("Fabricante", s.fabricante_nome),
+                        info("Modelo", s.modelo_nome),
+                        info("Ano de fabricação", rx.cond(e["ano_fabricacao"], e["ano_fabricacao"].to(str), "—")),
+                    ),
+                    info_card(
+                        "Situação",
+                        "activity",
+                        info("Localização", s.localizacao_nome),
+                        info("Última manutenção", timestamp_text(e["ultima_manutencao"], "DD/MM/YYYY")),
+                        info("Próxima manutenção preventiva", date_text(e["proxima_manutencao"])),
+                        info("Ocorrências abertas", e["ocorrencias_abertas"].to(str)),
+                    ),
+                    info_card(
+                        "Aquisição",
+                        "receipt",
+                        info("Data de aquisição", date_text(e["data_aquisicao"])),
+                        info("Valor de aquisição", rx.cond(e["valor_aquisicao"], "R$ " + e["valor_aquisicao"].to(str), "—")),
+                        info("Vida útil (anos)", rx.cond(e["vida_util_anos"], e["vida_util_anos"].to(str), "—")),
+                    ),
+                    columns=rx.breakpoints(initial="1", md="2", lg="3"),
+                    spacing="3",
                     width="100%",
                     padding_top="1rem",
                 ),
-                rx.cond(e["observacoes"], rx.box(info("Observações técnicas", e["observacoes"].to(str)), padding_top="1rem"), rx.fragment()),
+                rx.cond(
+                    e["observacoes"],
+                    rx.card(info("Observações técnicas", e["observacoes"].to(str)), width="100%", margin_top="0.75rem"),
+                    rx.fragment(),
+                ),
                 rx.hstack(
-                    rx.link("Ver manutenções", href="/manutencoes?equipamento_id=" + s.equipment_id.to_string()),
-                    rx.link("Ver ocorrências", href="/ocorrencias?equipamento_id=" + s.equipment_id.to_string()),
-                    spacing="4",
-                    padding_top="1rem",
+                    rx.link(rx.button(rx.icon("wrench", size=14), "Ver manutenções", variant="soft", size="2"), href="/manutencoes?equipamento_id=" + s.equipment_id.to_string()),
+                    rx.link(rx.button(rx.icon("circle_alert", size=14), "Ver ocorrências", variant="soft", size="2"), href="/ocorrencias?equipamento_id=" + s.equipment_id.to_string()),
+                    spacing="3",
+                    wrap="wrap",
+                    padding_top="0.75rem",
                 ),
                 value="geral",
             ),
@@ -781,4 +819,5 @@ def equipment_detail_page() -> rx.Component:
         ),
         dialogs(),
         actions=detail_actions(),
+        subtitle="Dados técnicos, componentes instalados e histórico de serviços",
     )

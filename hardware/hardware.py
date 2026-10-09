@@ -27,8 +27,8 @@ from .pages.users import UsersState, users_page
 from .components import BRAND
 from .state import AuthState
 
-# dashboard.css: animação de entrada do painel (classe hhm-enter)
-app = rx.App(stylesheets=["/dashboard.css"])
+# app.css: estilo das tabelas da área autenticada e animação de entrada do painel (classe hhm-enter)
+app = rx.App(stylesheets=["/app.css"])
 
 # Pública: página institucional da HospitalTech (estática, sem on_load nem chamadas à API)
 app.add_page(

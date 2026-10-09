@@ -630,4 +630,5 @@ def maintenance_page() -> rx.Component:
             rx.button(rx.icon("plus", size=16), "Nova manutenção", on_click=s.set_create_open(True)),
             rx.fragment(),
         ),
+        subtitle="Preventivas e corretivas: agende, acompanhe e registre a execução",
     )

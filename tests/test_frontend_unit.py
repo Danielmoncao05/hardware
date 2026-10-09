@@ -358,7 +358,59 @@ def test_app_shell_brand_user_menu_and_alerts():
     assert "logout" not in sidebar and "user_name" not in sidebar
     assert "Gestão de Equipamentos" not in components
     login = (ROOT / "hardware" / "pages" / "login.py").read_text(encoding="utf-8")
-    assert "rx.heading(BRAND" in login and "Gestão de Equipamentos" not in login
+    assert "account_shell(" in login and "Gestão de Equipamentos" not in login
+
+
+# ------------------------------------------------------------------ visual-refresh
+@pytest.mark.parametrize(
+    "path,href,active",
+    [
+        ("/equipamentos", "/equipamentos", True),
+        ("/equipamentos/", "/equipamentos", True),
+        ("/equipamentos/5", "/equipamentos", True),
+        ("/equipamentos/5/editar", "/equipamentos", True),
+        ("/novo-equipamento", "/equipamentos", True),
+        ("/equipamentos-x", "/equipamentos", False),
+        ("/painel", "/equipamentos", False),
+        ("/", "/painel", False),
+    ],
+)
+def test_nav_highlights_the_current_area(path, href, active):
+    from hardware.components import is_active_path
+
+    assert is_active_path(path, href) is active
+
+
+def test_at_most_one_nav_item_is_active():
+    from hardware.components import NAV, is_active_path
+
+    for path in ["/painel", "/equipamentos/3", "/novo-equipamento", "/manutencoes", "/usuarios", "/sem-acesso"]:
+        assert sum(is_active_path(path, href) for _, href, _, _ in NAV) <= 1, path
+
+
+def test_every_authenticated_page_has_a_subtitle():
+    import ast
+
+    for page in (ROOT / "hardware" / "pages").glob("*.py"):
+        for node in ast.walk(ast.parse(page.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "layout":
+                assert any(k.arg == "subtitle" for k in node.keywords), page.name
+
+
+def test_account_pages_show_the_brand():
+    from hardware.pages.change_password import change_password_page
+    from hardware.pages.login import forgot_page, login_page, reset_page
+
+    for page in (login_page, forgot_page, reset_page, change_password_page):
+        assert "HospitalTech" in str(page().render()), page.__name__
+
+
+def test_no_access_home_link_never_points_to_a_denied_area():
+    src = (ROOT / "hardware" / "pages" / "no_access.py").read_text(encoding="utf-8")
+    home = src[src.index("def home_link(") : src.index("def no_access_page(")]
+    # /painel exige reports.read; /equipamentos exige operational.read; sem nenhum dos dois, o botão some
+    assert 'AuthState.can_read_reports,\n        button("/painel")' in home
+    assert 'rx.cond(AuthState.can_read_operational, button("/equipamentos"), rx.fragment())' in home
 
 
 def test_alerts_bell_requires_report_permission():
@@ -582,10 +634,10 @@ def test_dashboard_elapsed_label(minutes_ago, expected):
 
 
 def test_dashboard_enter_animation_respects_reduced_motion():
-    css = (ROOT / "assets" / "dashboard.css").read_text(encoding="utf-8")
+    css = (ROOT / "assets" / "app.css").read_text(encoding="utf-8")
     assert "@keyframes hhm-enter" in css and "prefers-reduced-motion: reduce" in css
     app = (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
-    assert 'stylesheets=["/dashboard.css"]' in app
+    assert 'stylesheets=["/app.css"]' in app
     from hardware.pages.dashboard import enter
 
     rendered = str(enter(rx_text("x"), 3).render())

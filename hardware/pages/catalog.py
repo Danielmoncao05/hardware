@@ -622,4 +622,5 @@ def catalog_page() -> rx.Component:
             on_change=s.set_tab,
             width="100%",
         ),
+        subtitle="Fabricantes, categorias, modelos, componentes e localizações usados no cadastro dos equipamentos",
     )

@@ -377,4 +377,5 @@ def users_page() -> rx.Component:
             default_value="usuarios",
             width="100%",
         ),
+        subtitle="Contas da equipe, perfis de acesso e permissões de cada perfil",
     )

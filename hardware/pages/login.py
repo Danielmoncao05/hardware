@@ -3,7 +3,7 @@
 import reflex as rx
 
 from .. import api
-from ..components import BRAND, error_callout, submit_button, text_input
+from ..components import BRAND, account_shell, error_callout, submit_button, text_input
 from ..state import AuthState
 
 
@@ -68,17 +68,16 @@ class RecoveryState(AuthState):
 
 
 def _card(*children) -> rx.Component:
-    return rx.center(
-        rx.card(rx.vstack(*children, spacing="4", width="100%"), width="100%", max_width="26rem", size="3"),
-        min_height="100vh",
-        padding="1rem",
-    )
+    return account_shell(*children)
 
 
 def login_page() -> rx.Component:
     return _card(
-        rx.heading(BRAND, size="6", as_="h1"),
-        rx.text("Entre com a conta fornecida pelo administrador.", color_scheme="gray", size="2"),
+        rx.vstack(
+            rx.heading("Entrar no " + BRAND, size="6", as_="h1"),
+            rx.text("Use a conta fornecida pelo administrador.", color_scheme="gray", size="2"),
+            spacing="1",
+        ),
         rx.form(
             rx.vstack(
                 error_callout(AuthState.login_error),
