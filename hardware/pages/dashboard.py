@@ -51,6 +51,36 @@ def due_label(planned: str, today: dt.date) -> str:
     return f"Em {days} dias"
 
 
+def overdue_label(planned: str, today: dt.date) -> str:
+    """Há quanto tempo uma data de calendário passou: "há 1 dia", "há 36 dias" ("" se não passou ou é inválida)."""
+    try:
+        days = (today - dt.date.fromisoformat(planned)).days
+    except (TypeError, ValueError):
+        return ""
+    if days <= 0:
+        return ""
+    return "há 1 dia" if days == 1 else f"há {days} dias"
+
+
+def br_date(iso: str) -> str:
+    """"2026-09-03" -> "03/09/2026" (data de calendário, sem conversão de fuso)."""
+    try:
+        return dt.date.fromisoformat(iso).strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        return iso or ""
+
+
+def text_fields(row: dict, *keys: str) -> dict:
+    """Garante texto nos campos mostrados na tela: um valor inesperado da API (objeto, lista) vira "" em vez de
+    derrubar a página inteira ("Objects are not valid as a React child")."""
+    return row | {k: row[k] if isinstance(row.get(k), (str, int, float)) else "" for k in keys}
+
+
+def share(part: int, whole: int) -> int:
+    """Porcentagem inteira de part em whole (0 quando whole é 0), para as barras de proporção."""
+    return round(part * 100 / whole) if whole else 0
+
+
 def elapsed_label(ms, now: dt.datetime) -> str:
     """Tempo desde um instante (epoch em ms): "agora", "10 min atrás", "2 h atrás", "3 dias atrás"."""
     if not isinstance(ms, (int, float)):
@@ -79,6 +109,9 @@ class DashboardState(OptionsState):
     setores: list[dict] = []
     proximas_view: list[dict] = []
     alertas_view: list[dict] = []
+    # "Mais detalhes": preventivas com data em dd/mm/aaaa e prazo relativo
+    atrasadas_view: list[dict] = []
+    proximas_detail: list[dict] = []
 
     @rx.event
     async def on_load(self):
@@ -112,9 +145,24 @@ class DashboardState(OptionsState):
         now = dt.datetime.now(TZ)
         today = now.date()
         self.hoje = long_date(today)
-        self.setores = sorted(self.data.get("por_localizacao") or [], key=lambda s: (-(s.get("total") or 0), s.get("localizacao") or ""))
-        self.proximas_view = [m | {"prazo": due_label(m.get("data_planejada"), today)} for m in self.proximas[:LIST_LIMIT]]
-        self.alertas_view = [o | {"tempo": elapsed_label(o.get("relatada_em"), now)} for o in (self.data.get("ocorrencias_recentes") or [])[:LIST_LIMIT]]
+        self.setores = sorted(
+            (text_fields(s, "localizacao") for s in self.data.get("por_localizacao") or [] if isinstance(s, dict)),
+            key=lambda s: (-(s.get("total") or 0), s.get("localizacao") or ""),
+        )
+        self.proximas_view = [
+            text_fields(m, "equipamento", "localizacao", "numero_patrimonio") | {"prazo": due_label(m.get("data_planejada"), today)}
+            for m in self.proximas[:LIST_LIMIT]
+        ]
+        self.alertas_view = [
+            text_fields(o, "equipamento", "localizacao", "descricao_tecnica") | {"tempo": elapsed_label(o.get("relatada_em"), now)}
+            for o in (self.data.get("ocorrencias_recentes") or [])[:LIST_LIMIT]
+        ]
+        self.atrasadas_view = [
+            m | {"data": br_date(m.get("data_planejada")), "prazo": overdue_label(m.get("data_planejada"), today)} for m in self.atrasadas
+        ]
+        self.proximas_detail = [
+            m | {"data": br_date(m.get("data_planejada")), "prazo": due_label(m.get("data_planejada"), today)} for m in self.proximas[:10]
+        ]
 
     @rx.event
     async def set_localizacao(self, value: str):
@@ -146,7 +194,11 @@ class DashboardState(OptionsState):
 
     @rx.var
     def criticos(self) -> list[dict]:
-        return self.data.get("criticos") or []
+        return [
+            text_fields(c, "equipamento", "numero_patrimonio", "localizacao", "status", "descricao_tecnica", "ocorrencia_status")
+            for c in self.data.get("criticos") or []
+            if isinstance(c, dict)
+        ]
 
     @rx.var
     def total_criticos(self) -> int:
@@ -155,12 +207,20 @@ class DashboardState(OptionsState):
     # ---- seções detalhadas ----
     @rx.var
     def status_cards(self) -> list[dict]:
+        """Total por status com a proporção sobre todos os equipamentos (barra) e a cor do status."""
         por_status = self.data.get("por_status") or {}
-        return [{"status": k, "label": v, "total": por_status.get(k, 0)} for k, v in EQUIP_STATUS.items()]
+        whole = sum(por_status.get(k, 0) or 0 for k in EQUIP_STATUS)
+        return [
+            {"status": k, "label": v, "total": por_status.get(k, 0) or 0, "pct": share(por_status.get(k, 0) or 0, whole), "color": STATUS_COLOR[k]}
+            for k, v in EQUIP_STATUS.items()
+        ]
 
     @rx.var
     def por_categoria(self) -> list[dict]:
-        return [c for c in self.data.get("por_categoria") or [] if c.get("total")]
+        """Categorias com equipamentos, da maior para a menor; pct relativo à maior (comprimento da barra)."""
+        rows = sorted((c for c in self.data.get("por_categoria") or [] if c.get("total")), key=lambda c: (-c["total"], c.get("categoria") or ""))
+        top = rows[0]["total"] if rows else 0
+        return [c | {"nome": (c.get("categoria") or "")[:1].upper() + (c.get("categoria") or "")[1:], "pct": share(c["total"], top)} for c in rows]
 
     @rx.var
     def severidades(self) -> list[dict]:
@@ -420,10 +480,19 @@ def critical_list() -> rx.Component:
 
 
 # ------------------------------------------------------------------ seções detalhadas (conteúdo anterior)
-def work_table(title: str, rows, empty: str) -> rx.Component:
+def work_table(title: str, icon: str, rows, empty: str, color: str) -> rx.Component:
+    """Preventivas (atrasadas ou próximas): data dd/mm/aaaa com o prazo num selo da cor da seção."""
     return rx.card(
         rx.vstack(
-            rx.heading(title, size="4", as_="h3"),
+            rx.hstack(
+                rx.icon(icon, size=18, color=rx.color(color, 11), aria_hidden="true"),
+                rx.heading(title, size="4", as_="h3"),
+                rx.spacer(),
+                rx.badge(rows.length(), color_scheme=color, variant="soft", radius="full"),
+                align="center",
+                spacing="2",
+                width="100%",
+            ),
             rx.box(
                 rx.table.root(
                     rx.table.header(rx.table.row(*[rx.table.column_header_cell(h) for h in ["Data", "Equipamento", "Descrição"]])),
@@ -433,9 +502,15 @@ def work_table(title: str, rows, empty: str) -> rx.Component:
                             rx.foreach(
                                 rows,
                                 lambda m: rx.table.row(
-                                    rx.table.cell(m["data_planejada"]),
-                                    rx.table.cell(rx.link(m["equipamento"], href="/equipamentos/" + m["equipamento_id"].to_string())),
-                                    rx.table.cell(m["descricao"]),
+                                    rx.table.cell(
+                                        rx.vstack(
+                                            rx.text(m["data"], size="2", white_space="nowrap"),
+                                            rx.cond(m["prazo"] != "", rx.badge(m["prazo"], color_scheme=color, variant="soft", size="1"), rx.fragment()),
+                                            spacing="1",
+                                        )
+                                    ),
+                                    rx.table.cell(rx.link(m["equipamento"], href="/equipamentos/" + m["equipamento_id"].to_string(), weight="medium")),
+                                    rx.table.cell(rx.text(m["descricao"], size="2", color_scheme="gray")),
                                 ),
                             ),
                             empty_row(3, empty),
@@ -447,10 +522,27 @@ def work_table(title: str, rows, empty: str) -> rx.Component:
                 overflow_x="auto",
                 width="100%",
             ),
+            spacing="3",
             width="100%",
         ),
         width="100%",
     )
+
+
+def share_row(label: rx.Component, total, pct, color) -> rx.Component:
+    """Linha com rótulo, quantidade e barra de proporção."""
+    return rx.vstack(
+        rx.hstack(label, rx.spacer(), rx.text(total, weight="bold", size="2"), align="center", width="100%"),
+        rx.progress(value=pct, max=100, color_scheme=color, size="1", aria_hidden="true"),
+        spacing="1",
+        width="100%",
+    )
+
+
+def count_cell(value) -> rx.Component:
+    """Quantidade na tabela de severidade: zeros apagados, valores maiores que zero em destaque."""
+    positive = value.to(int) > 0
+    return rx.table.cell(rx.text(value, weight=rx.cond(positive, "bold", "regular"), opacity=rx.cond(positive, "1", "0.45")))
 
 
 def details() -> rx.Component:
@@ -488,20 +580,25 @@ def details() -> rx.Component:
                 rx.card(
                     rx.vstack(
                         rx.heading("Equipamentos por status", size="4", as_="h3"),
-                        rx.foreach(s.status_cards, lambda x: rx.hstack(badge(EQUIP_STATUS, x["status"]), rx.spacer(), rx.text(x["total"], weight="bold"), width="100%")),
+                        rx.foreach(s.status_cards, lambda x: share_row(badge(EQUIP_STATUS, x["status"]), x["total"], x["pct"], x["color"])),
+                        rx.text("Proporção sobre todos os equipamentos, inclusive descomissionados.", size="1", color_scheme="gray"),
+                        spacing="3",
                         width="100%",
                     ),
+                    width="100%",
                 ),
                 rx.card(
                     rx.vstack(
                         rx.heading("Equipamentos ativos por categoria", size="4", as_="h3"),
                         rx.cond(
                             s.por_categoria.length() > 0,
-                            rx.foreach(s.por_categoria, lambda c: rx.hstack(rx.text(c["categoria"]), rx.spacer(), rx.text(c["total"], weight="bold"), width="100%")),
+                            rx.foreach(s.por_categoria, lambda c: share_row(rx.text(c["nome"], size="2"), c["total"], c["pct"], "teal")),
                             rx.text("Nenhum equipamento ativo.", color_scheme="gray"),
                         ),
+                        spacing="3",
                         width="100%",
                     ),
+                    width="100%",
                 ),
                 rx.card(
                     rx.vstack(
@@ -513,34 +610,39 @@ def details() -> rx.Component:
                                     s.severidades,
                                     lambda x: rx.table.row(
                                         rx.table.row_header_cell(badge(SEVERITY, x["sev"])),
-                                        rx.table.cell(x["open"]),
-                                        rx.table.cell(x["in_progress"]),
-                                        rx.table.cell(rx.text(x["total"], weight="bold")),
+                                        count_cell(x["open"]),
+                                        count_cell(x["in_progress"]),
+                                        count_cell(x["total"]),
                                     ),
                                 ),
                                 rx.table.row(
                                     rx.table.row_header_cell(rx.text("Total", weight="bold")),
-                                    rx.table.cell(s.ocorrencias_status["open"]),
-                                    rx.table.cell(s.ocorrencias_status["in_progress"]),
-                                    rx.table.cell(rx.text(s.total_ocorrencias, weight="bold")),
+                                    count_cell(s.ocorrencias_status["open"]),
+                                    count_cell(s.ocorrencias_status["in_progress"]),
+                                    count_cell(s.total_ocorrencias),
                                 ),
                             ),
                             size="1",
                             width="100%",
                         ),
+                        rx.link("Ver ocorrências", href="/ocorrencias", size="2"),
+                        spacing="3",
                         width="100%",
                     ),
+                    width="100%",
                 ),
-                columns=rx.breakpoints(initial="1", md="3"),
+                columns=rx.breakpoints(initial="1", md="2", xl="3"),
                 spacing="3",
                 width="100%",
+                align_items="start",
             ),
             rx.grid(
-                work_table("Preventivas atrasadas", s.atrasadas, "Nenhuma preventiva atrasada."),
-                work_table("Preventivas próximas", s.proximas[:10], "Nenhuma preventiva prevista no período."),
+                work_table("Preventivas atrasadas", "calendar_x", s.atrasadas_view, "Nenhuma preventiva atrasada.", "red"),
+                work_table("Preventivas próximas", "calendar_clock", s.proximas_detail, "Nenhuma preventiva prevista no período.", "blue"),
                 columns=rx.breakpoints(initial="1", lg="2"),
                 spacing="3",
                 width="100%",
+                align_items="start",
             ),
             rx.card(
                 rx.vstack(

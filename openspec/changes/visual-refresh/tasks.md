@@ -14,6 +14,8 @@
 - [x] 2.2 Acesso negado com ícone, explicação e ações "Voltar" e "Ir para o início"; verificar que "Ir para o início" leva a `/painel` só para quem tem `reports.read` e a `/equipamentos` para os demais
 - [x] 2.3 Detalhe do equipamento: cabeçalho com status e patrimônio em destaque e dados da visão geral em cartões; verificar com `reflex compile --dry`
 
+- [x] 2.4 "Mais detalhes" do painel: barras de proporção por status e por categoria (categorias da maior para a menor), zeros apagados na tabela de severidade, preventivas com data dd/mm/aaaa e selo do prazo ("há N dias" / "Em N dias") e cartões alinhados pelo topo; verificado com testes unitários de `overdue_label`, `br_date`, `share` e da ordenação das categorias, e com `reflex compile --dry`
+
 ## 3. Verificação
 
 - [x] 3.1 Rodar `pytest` e `reflex compile --dry`

@@ -189,8 +189,14 @@ query acompanhamento verb=GET {
       }
     }
 
+    // Chave em variável: get com expressão entre parênteses devolvia o objeto inteiro, e o filtro de saúde deixava
+    // de valer (com "critico" a lista mostrava todos os equipamentos)
+    var $saude_chave {
+      value = $input.saude ?? "todos"
+    }
+
     var $filtro {
-      value = $faixas|get:($input.saude ?? "todos")
+      value = $faixas|get:$saude_chave
     }
 
     // Página pedida, em ordem de nome. O Xano às vezes ignora o bloco paging e devolve a lista inteira, então a

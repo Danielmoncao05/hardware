@@ -633,6 +633,38 @@ def test_dashboard_elapsed_label(minutes_ago, expected):
     assert elapsed_label(None, now) == ""
 
 
+def test_dashboard_details_helpers():
+    from hardware.pages.dashboard import br_date, overdue_label, share
+
+    today = dt.date(2026, 10, 9)
+    assert overdue_label("2026-09-03", today) == "há 36 dias"
+    assert overdue_label("2026-10-08", today) == "há 1 dia"
+    assert overdue_label("2026-10-09", today) == "" and overdue_label(None, today) == ""
+    assert br_date("2026-09-03") == "03/09/2026" and br_date("") == ""
+    assert share(23, 25) == 92 and share(0, 0) == 0
+
+
+def test_dashboard_never_renders_objects_as_text():
+    """O Xano devolveu o índice de localizações no lugar do nome e a página inteira quebrou; agora o campo fica vazio."""
+    from types import SimpleNamespace
+
+    from hardware.pages.dashboard import DashboardState
+
+    data = {"criticos": [{"equipamento_id": 8, "equipamento": "Bomba 08", "localizacao": {"1": "UTI", "2": "PS"}, "ocorrencia_id": 3}]}
+    [row] = DashboardState.computed_vars["criticos"].fget(SimpleNamespace(data=data))
+    assert row["localizacao"] == "" and row["equipamento"] == "Bomba 08" and row["equipamento_id"] == 8 and row["ocorrencia_id"] == 3
+
+
+def test_dashboard_categories_sorted_with_bar_share():
+    from types import SimpleNamespace
+
+    from hardware.pages.dashboard import DashboardState
+
+    data = {"por_categoria": [{"categoria": "raio-X", "total": 2}, {"categoria": "bomba de infusão", "total": 4}, {"categoria": "oxímetro", "total": 0}]}
+    rows = DashboardState.computed_vars["por_categoria"].fget(SimpleNamespace(data=data))
+    assert [(r["nome"], r["pct"]) for r in rows] == [("Bomba de infusão", 100), ("Raio-X", 50)]
+
+
 def test_dashboard_enter_animation_respects_reduced_motion():
     css = (ROOT / "assets" / "app.css").read_text(encoding="utf-8")
     assert "@keyframes hhm-enter" in css and "prefers-reduced-motion: reduce" in css

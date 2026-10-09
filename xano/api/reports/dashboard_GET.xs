@@ -187,31 +187,16 @@ query dashboard verb=GET {
       return = {type: "list"}
     } as $ocorrencias_recentes
 
-    // Equipamentos críticos: um item por equipamento, com a ocorrência crítica mais recente quando houver
-    db.query equipamentos {
-      join = {
-        localizacoes: {
-          table: "localizacoes"
-          where: $db.equipamentos.localizacao_id == $db.localizacoes.id
-        }
-      }
-
-      where = $db.equipamentos.status == "out_of_service" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
-      sort = {nome: "asc"}
-      output = ["id", "nome", "numero_patrimonio", "status"]
-      eval = {
-        localizacao: $db.localizacoes.nome
-      }
-
-      return = {type: "list"}
-    } as $fora_de_servico
-
-    var $criticos {
-      value = []
+    // Equipamentos críticos: um item por equipamento, com a ocorrência crítica mais recente quando houver.
+    // Só campos diretos das tabelas: dentro de um laço o Xano não enxerga os campos de eval (vinham vazios e o
+    // painel mostrava "0" no lugar do equipamento). Nome e patrimônio vêm de equipamentos; a localização, da lista
+    // $localizacoes já buscada.
+    var $critica_por_equip {
+      value = {}
     }
 
-    var $vistos {
-      value = {}
+    var $ids_criticos {
+      value = [0]
     }
 
     foreach ($ocorrencias_recentes) {
@@ -221,52 +206,72 @@ query dashboard verb=GET {
         }
 
         conditional {
-          if ($oc.severidade == "critical" && ($vistos|get:$k) == null) {
-            var.update $criticos {
-              value = $criticos|push:{
-                equipamento_id   : $oc.equipamento_id
-                equipamento      : $oc.equipamento
-                numero_patrimonio: $oc.numero_patrimonio
-                localizacao      : $oc.localizacao
-                status           : null
-                ocorrencia_id    : $oc.id
-                descricao_tecnica: $oc.descricao_tecnica
-                ocorrencia_status: $oc.status
-              }
+          if ($oc.severidade == "critical" && ($critica_por_equip|get:$k) == null) {
+            var.update $critica_por_equip {
+              value = $critica_por_equip|set:$k:{ocorrencia_id: $oc.id, descricao_tecnica: $oc.descricao_tecnica, ocorrencia_status: $oc.status}
             }
 
-            var.update $vistos {
-              value = $vistos|set:$k:true
+            var.update $ids_criticos {
+              value = $ids_criticos|push:$oc.equipamento_id
             }
           }
         }
       }
     }
 
-    foreach ($fora_de_servico) {
+    db.query equipamentos {
+      where = ($db.equipamentos.id in $ids_criticos || $db.equipamentos.status == "out_of_service") && $db.equipamentos.status != "decommissioned" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
+      sort = {nome: "asc"}
+      output = ["id", "nome", "numero_patrimonio", "status", "localizacao_id"]
+      return = {type: "list"}
+    } as $equip_criticos
+
+    var $nome_localizacao {
+      value = {}
+    }
+
+    foreach ($localizacoes) {
+      each as $loc {
+        var $k_loc {
+          value = $loc.id|to_text
+        }
+
+        var.update $nome_localizacao {
+          value = $nome_localizacao|set:$k_loc:$loc.nome
+        }
+      }
+    }
+
+    var $criticos {
+      value = []
+    }
+
+    foreach ($equip_criticos) {
       each as $eq {
-        var $k {
+        // Chaves em variáveis: get com expressão entre parênteses devolvia o objeto inteiro (o painel recebia o
+        // índice de localizações no lugar do nome e quebrava)
+        var $k_equip {
           value = $eq.id|to_text
         }
 
-        conditional {
-          if (($vistos|get:$k) == null) {
-            var.update $criticos {
-              value = $criticos|push:{
-                equipamento_id   : $eq.id
-                equipamento      : $eq.nome
-                numero_patrimonio: $eq.numero_patrimonio
-                localizacao      : $eq.localizacao
-                status           : $eq.status
-                ocorrencia_id    : null
-                descricao_tecnica: null
-                ocorrencia_status: null
-              }
-            }
+        var $k_loc {
+          value = $eq.localizacao_id|to_text
+        }
 
-            var.update $vistos {
-              value = $vistos|set:$k:true
-            }
+        var $occ {
+          value = ($critica_por_equip|get:$k_equip) ?? {ocorrencia_id: null, descricao_tecnica: null, ocorrencia_status: null}
+        }
+
+        var.update $criticos {
+          value = $criticos|push:{
+            equipamento_id   : $eq.id
+            equipamento      : $eq.nome
+            numero_patrimonio: $eq.numero_patrimonio
+            localizacao      : $nome_localizacao|get:$k_loc
+            status           : $eq.status
+            ocorrencia_id    : $occ.ocorrencia_id
+            descricao_tecnica: $occ.descricao_tecnica
+            ocorrencia_status: $occ.ocorrencia_status
           }
         }
       }
