@@ -26,12 +26,12 @@ query "roles/{role_id}/permissions/{permission_id}" verb=DELETE {
 
     precondition ($role != null && $permission != null) {
       error_type = "notfound"
-      error = "Role or permission not found."
+      error = "Perfil ou permissão não encontrado."
     }
 
     precondition ($role.nome != "administrator" || $permission.chave != "users.manage") {
       error_type = "inputerror"
-      error = "users.manage cannot be revoked from the administrator role."
+      error = "A permissão de gerenciar usuários e perfis não pode ser removida do perfil Administrador."
     }
 
     db.query role_permissions {

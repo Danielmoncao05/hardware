@@ -108,6 +108,33 @@ def text_input(label: str, name: str, required: bool = False, type_: str = "text
     )
 
 
+def password_input(label: str, name: str, required: bool = False, hint: str = "", id_prefix: str = "f", **props) -> rx.Component:
+    """Campo de senha com botão de olho para mostrar/ocultar. A troca acontece só no navegador (assets/password.js),
+    sem passar a senha pelo estado; o campo começa oculto e volta a ocultar quando o formulário é enviado."""
+    field_id = f"{id_prefix}-{name}"
+    if hint:
+        props["aria_describedby"] = f"{field_id}-hint"
+    toggle = rx.icon_button(
+        rx.icon("eye", class_name="hhm-eye"),
+        rx.icon("eye-off", size=12, class_name="hhm-eye-off"),
+        type="button",
+        variant="ghost",
+        color_scheme="gray",
+        size="1",
+        aria_label="Mostrar senha",
+        title="Mostrar senha",
+        custom_attrs={"aria-pressed": "false", "data-visible": "false", "data-password-toggle": field_id},
+        class_name="hhm-password-toggle",
+    )
+    return field(
+        label,
+        rx.input(rx.input.slot(toggle, side="right"), id=field_id, name=name, type="password", required=required, width="100%", **props),
+        field_id,
+        hint,
+        required,
+    )
+
+
 def text_area(label: str, name: str, required: bool = False, default_value="", hint: str = "", id_prefix: str = "f", **props) -> rx.Component:
     field_id = f"{id_prefix}-{name}"
     return field(
@@ -300,7 +327,7 @@ def user_menu() -> rx.Component:
         rx.menu.content(
             rx.box(
                 rx.text(AuthState.display_name, weight="medium", size="2"),
-                rx.text(AuthState.role, size="1", color_scheme="gray"),
+                rx.text(AuthState.role_label, size="1", color_scheme="gray"),
                 padding_x="0.75rem",
                 padding_y="0.5rem",
             ),

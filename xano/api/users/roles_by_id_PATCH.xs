@@ -24,14 +24,14 @@ query "roles/{role_id}" verb=PATCH {
 
     precondition ($before != null) {
       error_type = "notfound"
-      error = "Role not found."
+      error = "Perfil não encontrado."
     }
 
     conditional {
       if ($input.ativo == false && $before.ativo == true) {
         precondition ($before.nome != "administrator") {
           error_type = "inputerror"
-          error = "The administrator role cannot be deactivated."
+          error = "O perfil Administrador não pode ser desativado."
         }
 
         db.query user {
@@ -41,7 +41,7 @@ query "roles/{role_id}" verb=PATCH {
 
         precondition ($em_uso == 0) {
           error_type = "inputerror"
-          error = "This role is assigned to " ~ $em_uso ~ " enabled user(s). Reassign them before deactivating it."
+          error = "Este perfil está em uso por " ~ $em_uso ~ " usuário(s) habilitado(s). Troque o perfil deles antes de desativá-lo."
         }
       }
     }

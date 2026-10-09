@@ -713,3 +713,47 @@ def test_landing_page_content_links_and_images():
         assert (ROOT / "assets" / path.lstrip("/")).is_file(), path
     # Botões de acesso: um no cabeçalho, outros no conteúdo, todos via link para o login
     assert src.count("_access_button(") >= 3
+
+
+# ------------------------------------------------------------------ mostrar/ocultar senha
+def test_password_input_has_eye_toggle_that_does_not_submit():
+    from hardware.components import password_input
+
+    rendered = str(password_input("Senha", "password", required=True).render())
+    assert 'type:"password"' in rendered and 'id:"f-password"' in rendered
+    assert 'type:"button"' in rendered
+    assert '"aria-label":"Mostrar senha"' in rendered or 'aria-label' in rendered and "Mostrar senha" in rendered
+    assert "data-password-toggle" in rendered and "f-password" in rendered
+    js = (ROOT / "assets" / "password.js").read_text(encoding="utf-8")
+    assert "Ocultar senha" in js and "Mostrar senha" in js and '"submit"' in js
+    assert 'rx.script(src="/password.js")' in (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
+
+
+def test_every_password_field_uses_password_input():
+    pages = list((ROOT / "hardware" / "pages").glob("*.py"))
+    assert not [p.name for p in pages if 'type_="password"' in p.read_text(encoding="utf-8")]
+    total = sum(p.read_text(encoding="utf-8").count("password_input(") for p in pages)
+    assert total == 7  # login 1, link de e-mail 2, alterar senha 3, senha temporária 1
+
+
+# ------------------------------------------------------------------ Usuários e perfis em português
+def test_roles_and_permissions_are_shown_in_portuguese():
+    from hardware.labels import PERMISSIONS, ROLES, permission_label, role_description, role_label
+
+    assert role_label("asset_manager") == "Gestor de patrimônio" and role_label("supervisor_x") == "supervisor_x"
+    assert role_description("viewer", "Read-only access") == ROLES["viewer"][1]
+    assert role_description("supervisor_x", "Minha descrição") == "Minha descrição"
+    assert permission_label("users.manage") == "Gerenciar usuários e perfis"
+    seed = (ROOT / "xano" / "function" / "setup" / "seed_reference_data.xs").read_text(encoding="utf-8")
+    for chave in PERMISSIONS:
+        assert f'chave: "{chave}"' in seed, chave
+    for nome in ROLES:
+        assert f'nome: "{nome}"' in seed, nome
+    src = (ROOT / "hardware" / "pages" / "users.py").read_text(encoding="utf-8")
+    assert "rx.code(" not in src and "users.manage não" not in src
+
+
+def test_users_api_errors_are_in_portuguese():
+    for f in (ROOT / "xano" / "api" / "users").glob("*.xs"):
+        for msg in re.findall(r'error = "([^"]*)"', f.read_text(encoding="utf-8")):
+            assert not re.search(r"\b(the|not found|cannot|must|already|role)\b", msg, re.I), (f.name, msg)

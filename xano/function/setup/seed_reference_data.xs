@@ -26,25 +26,25 @@ function "setup/seed_reference_data" {
 
     var $roles {
       value = [
-        {nome: "administrator", descricao: "Manages users, roles, permissions, inventory, and maintenance."}
-        {nome: "asset_manager", descricao: "Manages inventory and catalogs and all maintenance and occurrences."}
-        {nome: "technician", descricao: "Works on assigned maintenance and occurrences; reports occurrences."}
-        {nome: "viewer", descricao: "Read-only access to operational data and reports."}
+        {nome: "administrator", descricao: "Gerencia usuários, perfis e permissões, o inventário e as manutenções."}
+        {nome: "asset_manager", descricao: "Gerencia o inventário, os catálogos e todas as manutenções e ocorrências."}
+        {nome: "technician", descricao: "Atua nas manutenções e ocorrências atribuídas a ele e registra ocorrências."}
+        {nome: "viewer", descricao: "Acesso somente leitura aos dados operacionais e relatórios."}
       ]
     }
 
     var $permissions {
       value = [
-        {chave: "operational.read", descricao: "Read equipment, catalogs, locations, maintenance, and occurrences."}
-        {chave: "inventory.manage", descricao: "Create, update, move, change status of, and deactivate equipment, catalogs, locations, and components."}
-        {chave: "maintenance.manage", descricao: "Create, assign, and transition any maintenance record."}
-        {chave: "maintenance.manage_assigned", descricao: "Transition and update maintenance assigned to the user."}
-        {chave: "occurrence.report", descricao: "Report a new equipment occurrence."}
-        {chave: "occurrence.manage", descricao: "Assign, resolve, cancel, and link any occurrence."}
-        {chave: "occurrence.manage_assigned", descricao: "Update, resolve, and cancel occurrences assigned to the user."}
-        {chave: "reports.read", descricao: "Read the dashboard and operational reports, including CSV export."}
-        {chave: "audit.read", descricao: "Read the audit log."}
-        {chave: "users.manage", descricao: "Provision, enable, and disable users and manage roles and permissions."}
+        {chave: "operational.read", descricao: "Ver equipamentos, catálogos, localizações, manutenções e ocorrências."}
+        {chave: "inventory.manage", descricao: "Cadastrar, editar, mover, mudar o status e desativar equipamentos, catálogos, localizações e componentes."}
+        {chave: "maintenance.manage", descricao: "Cadastrar, atribuir e mudar o andamento de qualquer manutenção."}
+        {chave: "maintenance.manage_assigned", descricao: "Mudar o andamento e editar as manutenções atribuídas ao usuário."}
+        {chave: "occurrence.report", descricao: "Relatar uma nova ocorrência de equipamento."}
+        {chave: "occurrence.manage", descricao: "Atribuir, resolver, cancelar e vincular qualquer ocorrência."}
+        {chave: "occurrence.manage_assigned", descricao: "Editar, resolver e cancelar as ocorrências atribuídas ao usuário."}
+        {chave: "reports.read", descricao: "Ver o painel e os relatórios operacionais, inclusive a exportação em CSV."}
+        {chave: "audit.read", descricao: "Ver o log de auditoria."}
+        {chave: "users.manage", descricao: "Cadastrar, habilitar e desabilitar usuários e gerenciar perfis e permissões."}
       ]
     }
 

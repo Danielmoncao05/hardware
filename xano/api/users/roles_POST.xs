@@ -21,7 +21,7 @@ query roles verb=POST {
 
     precondition ($exists == false) {
       error_type = "inputerror"
-      error = "nome: a role with this name already exists."
+      error = "Já existe um perfil com esse nome."
     }
 
     db.transaction {

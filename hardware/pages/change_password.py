@@ -8,7 +8,7 @@ só uma sessão, nunca uma permissão, então os guards sempre podem redireciona
 import reflex as rx
 
 from .. import api
-from ..components import account_shell, error_callout, submit_button, text_input
+from ..components import account_shell, error_callout, password_input, submit_button
 from ..state import AuthState
 
 
@@ -82,27 +82,24 @@ def change_password_page() -> rx.Component:
         rx.form(
             rx.vstack(
                 error_callout(s.error),
-                text_input(
+                password_input(
                     "Senha atual (ou temporária)",
                     "senha_atual",
                     required=True,
-                    type_="password",
                     custom_attrs={"autocomplete": "current-password"},
                     auto_focus=True,
                 ),
-                text_input(
+                password_input(
                     "Nova senha",
                     "nova_senha",
                     required=True,
-                    type_="password",
                     hint="Mínimo de 8 caracteres, com pelo menos uma letra e um número.",
                     custom_attrs={"autocomplete": "new-password"},
                 ),
-                text_input(
+                password_input(
                     "Confirmar nova senha",
                     "confirmar_senha",
                     required=True,
-                    type_="password",
                     custom_attrs={"autocomplete": "new-password"},
                 ),
                 submit_button("Salvar nova senha", loading=s.saving, width="100%"),

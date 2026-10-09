@@ -20,7 +20,7 @@ query "roles/{role_id}/permissions" verb=POST {
 
     precondition ($role != null) {
       error_type = "notfound"
-      error = "Role not found."
+      error = "Perfil não encontrado."
     }
 
     db.get permissions {
@@ -30,7 +30,7 @@ query "roles/{role_id}/permissions" verb=POST {
 
     precondition ($permission != null) {
       error_type = "notfound"
-      error = "Permission not found."
+      error = "Permissão não encontrada."
     }
 
     db.query role_permissions {

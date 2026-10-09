@@ -28,7 +28,7 @@ from .components import BRAND
 from .state import AuthState
 
 # app.css: estilo das tabelas da área autenticada e animação de entrada do painel (classe hhm-enter)
-app = rx.App(stylesheets=["/app.css"])
+app = rx.App(stylesheets=["/app.css"], head_components=[rx.script(src="/password.js")])
 
 # Pública: página institucional da HospitalTech (estática, sem on_load nem chamadas à API)
 app.add_page(

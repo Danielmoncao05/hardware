@@ -6,7 +6,8 @@ from typing import TypedDict
 import reflex as rx
 
 from .. import api
-from ..components import empty_row, error_callout, form_key_field, layout, native_select, stale_submit, submit_button, text_input
+from ..components import empty_row, error_callout, form_key_field, layout, native_select, password_input, stale_submit, submit_button, text_input
+from ..labels import permission_description, permission_label, role_description, role_label
 from ..state import AuthState
 from ..options import to_int
 
@@ -20,6 +21,7 @@ class GrantCell(TypedDict):
 class PermissionRow(TypedDict):
     id: int
     chave: str
+    nome: str
     descricao: str
     cells: list[GrantCell]
 
@@ -65,7 +67,21 @@ class UsersState(AuthState):
 
     @rx.var
     def role_options(self) -> list[dict]:
-        return [{"value": str(r["id"]), "label": r["nome"]} for r in self.roles if r.get("ativo")]
+        return [{"value": str(r["id"]), "label": role_label(r["nome"])} for r in self.roles if r.get("ativo")]
+
+    @rx.var
+    def role_rows(self) -> list[dict]:
+        """Perfis com nome e descrição em português (os padrões vêm do seed com código e texto em inglês)."""
+        return [
+            {
+                "id": r["id"],
+                "nome": r["nome"],
+                "rotulo": role_label(r["nome"]),
+                "descricao": role_description(r["nome"], r.get("descricao")),
+                "ativo": bool(r.get("ativo")),
+            }
+            for r in self.roles
+        ]
 
     @rx.var
     def matrix(self) -> list[PermissionRow]:
@@ -74,9 +90,10 @@ class UsersState(AuthState):
             {
                 "id": p["id"],
                 "chave": p["chave"],
-                "descricao": p["descricao"],
+                "nome": permission_label(p["chave"]),
+                "descricao": permission_description(p["chave"], p.get("descricao")),
                 "cells": [
-                    {"role_id": r["id"], "role": r["nome"], "granted": p["chave"] in (r.get("permissions") or [])}
+                    {"role_id": r["id"], "role": role_label(r["nome"]), "granted": p["chave"] in (r.get("permissions") or [])}
                     for r in self.roles
                 ],
             }
@@ -189,10 +206,9 @@ def users_page() -> rx.Component:
                                 rx.grid(
                                     text_input("Nome", "name", required=True),
                                     text_input("E-mail", "email", type_="email", required=True),
-                                    text_input(
+                                    password_input(
                                         "Senha temporária",
                                         "password",
-                                        type_="password",
                                         required=True,
                                         hint="Mínimo de 8 caracteres, com letras e números. O usuário deverá trocá-la no primeiro acesso.",
                                         custom_attrs={"autocomplete": "new-password"},
@@ -227,7 +243,7 @@ def users_page() -> rx.Component:
                                                 rx.cond(
                                                     u["id"] == s.user_id,
                                                     # A própria linha: o perfil vem da sessão (users GET não traz o nome do perfil)
-                                                    rx.text(s.role),
+                                                    rx.text(s.role_label),
                                                     rx.el.select(
                                                         rx.el.option("Sem perfil", value=""),
                                                         rx.foreach(s.role_options, lambda o: rx.el.option(o["label"], value=o["value"])),
@@ -303,9 +319,9 @@ def users_page() -> rx.Component:
                             rx.table.header(rx.table.row(*[rx.table.column_header_cell(h) for h in ["Perfil", "Descrição", "Situação", ""]])),
                             rx.table.body(
                                 rx.foreach(
-                                    s.roles,
+                                    s.role_rows,
                                     lambda r: rx.table.row(
-                                        rx.table.row_header_cell(rx.code(r["nome"])),
+                                        rx.table.row_header_cell(r["rotulo"]),
                                         rx.table.cell(r["descricao"]),
                                         rx.table.cell(
                                             rx.cond(r["ativo"], rx.badge("Ativo", color_scheme="green", variant="soft"), rx.badge("Inativo", color_scheme="gray", variant="soft"))
@@ -332,7 +348,7 @@ def users_page() -> rx.Component:
                     ),
                     rx.text(
                         "Um perfil só pode ser desativado quando nenhum usuário habilitado o utiliza. "
-                        "Marque ou desmarque para conceder ou revogar. A permissão users.manage não pode ser removida do perfil administrator.",
+                        "Marque ou desmarque para conceder ou revogar. A permissão “Gerenciar usuários e perfis” não pode ser removida do perfil Administrador.",
                         size="2",
                         color_scheme="gray",
                     ),
@@ -341,21 +357,21 @@ def users_page() -> rx.Component:
                             rx.table.header(
                                 rx.table.row(
                                     rx.table.column_header_cell("Permissão"),
-                                    rx.foreach(s.roles, lambda r: rx.table.column_header_cell(r["nome"])),
+                                    rx.foreach(s.role_rows, lambda r: rx.table.column_header_cell(r["rotulo"])),
                                 )
                             ),
                             rx.table.body(
                                 rx.foreach(
                                     s.matrix,
                                     lambda p: rx.table.row(
-                                        rx.table.row_header_cell(rx.vstack(rx.code(p["chave"]), rx.text(p["descricao"], size="1", color_scheme="gray"), spacing="1")),
+                                        rx.table.row_header_cell(rx.vstack(rx.text(p["nome"], weight="medium"), rx.text(p["descricao"], size="1", color_scheme="gray"), spacing="1")),
                                         rx.foreach(
                                             p["cells"],
                                             lambda c: rx.table.cell(
                                                 rx.checkbox(
                                                     checked=c["granted"],
                                                     on_change=lambda _v: s.toggle_grant(c["role_id"], p["id"], c["granted"]),
-                                                    aria_label=p["chave"].to(str) + " para " + c["role"].to(str),
+                                                    aria_label=p["nome"].to(str) + " para " + c["role"].to(str),
                                                 )
                                             ),
                                         ),

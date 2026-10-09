@@ -12,6 +12,7 @@ from typing import Any
 import reflex as rx
 
 from . import api
+from .labels import role_label
 
 # Segundos em que o perfil carregado (auth/me) é reaproveitado entre páginas. O plano Free do Xano aceita poucas
 # requisições por janela, então consultar o perfil a cada troca de página deixava a navegação lenta.
@@ -96,6 +97,11 @@ class AuthState(rx.State):
     @rx.var
     def can_manage_users(self) -> bool:
         return "users.manage" in self.permissions
+
+    @rx.var
+    def role_label(self) -> str:
+        """Perfil do usuário logado em português."""
+        return role_label(self.role)
 
     # ---- auxiliares de API para as subclasses ----
     async def call(self, method: str, group: str, path: str, **kwargs) -> Any:

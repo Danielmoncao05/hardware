@@ -3,7 +3,7 @@
 import reflex as rx
 
 from .. import api
-from ..components import BRAND, account_shell, error_callout, submit_button, text_input
+from ..components import BRAND, account_shell, error_callout, password_input, submit_button, text_input
 from ..state import AuthState
 
 
@@ -82,7 +82,7 @@ def login_page() -> rx.Component:
             rx.vstack(
                 error_callout(AuthState.login_error),
                 text_input("E-mail", "email", required=True, type_="email", custom_attrs={"autocomplete": "username"}, auto_focus=True),
-                text_input("Senha", "password", required=True, type_="password", custom_attrs={"autocomplete": "current-password"}),
+                password_input("Senha", "password", required=True, custom_attrs={"autocomplete": "current-password"}),
                 submit_button("Entrar", loading=AuthState.login_loading, width="100%"),
                 spacing="3",
             ),
@@ -129,15 +129,14 @@ def reset_page() -> rx.Component:
             rx.form(
                 rx.vstack(
                     error_callout(RecoveryState.reset_error),
-                    text_input(
+                    password_input(
                         "Nova senha",
                         "password",
                         required=True,
-                        type_="password",
                         custom_attrs={"autocomplete": "new-password"},
                         hint="Mínimo de 8 caracteres, com pelo menos uma letra e um número.",
                     ),
-                    text_input("Confirmar senha", "confirm_password", required=True, type_="password", custom_attrs={"autocomplete": "new-password"}),
+                    password_input("Confirmar senha", "confirm_password", required=True, custom_attrs={"autocomplete": "new-password"}),
                     submit_button("Salvar senha", loading=RecoveryState.reset_loading, width="100%"),
                     spacing="3",
                 ),

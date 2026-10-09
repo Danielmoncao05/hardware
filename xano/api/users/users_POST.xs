@@ -28,7 +28,7 @@ query users verb=POST {
 
     precondition ($role != null && $role.ativo == true) {
       error_type = "inputerror"
-      error = "role_id must reference an active role."
+      error = "Escolha um perfil ativo."
     }
 
     db.has user {
@@ -38,7 +38,7 @@ query users verb=POST {
 
     precondition ($email_taken == false) {
       error_type = "inputerror"
-      error = "email is already in use."
+      error = "Este e-mail já está em uso."
     }
 
     db.transaction {

@@ -24,12 +24,12 @@ query "users/{user_id}" verb=PATCH {
 
     precondition ($before != null) {
       error_type = "notfound"
-      error = "User not found."
+      error = "Usuário não encontrado."
     }
 
     precondition ($input.user_id != $auth.id || ($input.role_id == null && $input.ativo == null)) {
       error_type = "inputerror"
-      error = "You cannot change your own role or enabled state."
+      error = "Você não pode alterar o próprio perfil nem desabilitar a própria conta."
     }
 
     var $updates {
@@ -40,7 +40,7 @@ query "users/{user_id}" verb=PATCH {
       if ($input.name != null) {
         precondition ($input.name != "") {
           error_type = "inputerror"
-          error = "name cannot be blank."
+          error = "O nome não pode ficar em branco."
         }
 
         var.update $updates {
@@ -58,7 +58,7 @@ query "users/{user_id}" verb=PATCH {
 
         precondition ($role != null && $role.ativo == true) {
           error_type = "inputerror"
-          error = "role_id must reference an active role."
+          error = "Escolha um perfil ativo."
         }
 
         var.update $updates {
