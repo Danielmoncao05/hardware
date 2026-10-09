@@ -45,7 +45,9 @@ query "manutencoes/{manutencao_id}/iniciar" verb=POST {
       value = $input.iniciada_em ?? now
     }
 
-    precondition ($iniciada_em <= now) {
+    // Só valida a data informada pelo cliente: o padrão (now) nunca está no futuro, e comparar o padrão com um
+    // segundo now falhava no Xano ("iniciada_em cannot be in the future" sem nenhuma data enviada)
+    precondition ($input.iniciada_em == null || $input.iniciada_em <= now) {
       error_type = "inputerror"
       error = "iniciada_em cannot be in the future."
     }

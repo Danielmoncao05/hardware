@@ -42,12 +42,17 @@ class UsersState(AuthState):
         await self._fetch()
 
     async def _fetch(self):
+        """Perfis primeiro e em separado: uma falha na lista de usuários não pode deixar o formulário de
+        cadastro sem opções de perfil."""
         self.error = ""
         try:
-            self.users = await self._fetch_all("users", "users", page_size=100)
             data = await self.call("GET", "users", "roles")
             self.roles = data["roles"]
             self.permission_list = data["permissions"]
+        except api.ApiError as err:
+            self.error = err.message
+        try:
+            self.users = await self._fetch_all("users", "users", page_size=100)
         except api.ApiError as err:
             self.error = err.message
 
@@ -214,7 +219,8 @@ def users_page() -> rx.Component:
                                             rx.table.cell(
                                                 rx.cond(
                                                     u["id"] == s.user_id,
-                                                    rx.text(u["role"]),
+                                                    # A própria linha: o perfil vem da sessão (users GET não traz o nome do perfil)
+                                                    rx.text(s.role),
                                                     rx.el.select(
                                                         rx.el.option("Sem perfil", value=""),
                                                         rx.foreach(s.role_options, lambda o: rx.el.option(o["label"], value=o["value"])),

@@ -47,3 +47,17 @@
 - [ ] 7.6 Implementar trabalho pendente só com preventivas, recorrência como sugestão, a regra de permissão do responsável e a manutenção corretiva preenchida a partir de uma ocorrência; verificar se a definição de atrasada é a mesma na lista, no painel e no relatório, se a conclusão não cria registro novo, se responsáveis sem permissão são recusados e se o vínculo com a ocorrência é definido automaticamente.
 - [ ] 7.7 Implementar os comportamentos do frontend: página de acesso negado e guards, edição de catálogos, histórico com os mais antigos primeiro e exibição no fuso da instituição; verificar se os guards nunca entram em loop, se referências inativas não são apagadas na edição e se as datas planejadas não mudam por fuso.
 - [ ] 7.8 Implementar o passo único de setup após o push (`setup/run_deployment_setup`: seed, migração, limpeza da auditoria) e o procedimento de janela de manutenção em `docs/operations.md`; verificar se ele é idempotente, recusa concessões divergentes e não deixa nenhuma conta sem perfil.
+
+## 8. Correções e desempenho (revisão de 2026-10-08)
+
+- [x] 8.1 Impedir registros duplicados por clique duplo nos formulários de manutenção, ocorrência, usuários, perfis e catálogos; verificar com testes unitários do descarte de envio repetido.
+- [x] 8.2 Calcular o horário "agora" pré-preenchido quando o diálogo abre (var sem cache); verificar com teste unitário.
+- [x] 8.3 Voltar para a página 1 ao entrar em manutenções/ocorrências e à aba padrão ao limpar o filtro de equipamento.
+- [x] 8.4 Reaproveitar perfil (60 s), listas de opções (5 min) e páginas de listagem (30 s, esvaziadas por qualquer escrita) e filtrar abas localmente quando a lista completa cabe em uma resposta; verificar com testes unitários de cache e das regras das abas.
+- [x] 8.5 Tratar HTTP 429 com nova tentativa e mensagem em português; verificar com testes unitários.
+- [x] 8.6 Normalizar listagens que o Xano devolve sem paginação (`api.as_page`) e trocar `router.page` (descontinuado) por `router.url`.
+- [x] 8.7 Reescrever `setup/scrub_audit_credentials` sem paginação.
+- [x] 8.8 Validar `iniciada_em` e `relatada_em` só quando enviadas pelo cliente.
+- [x] 8.9 Criar o script de dados de demonstração (`scripts/seed_demo.py`), que cadastra pela API, com prefixo DEMO e de forma reexecutável.
+- [ ] 8.10 Publicar no Xano os endpoints corrigidos (8.7, 8.8) e rodar `setup/run_deployment_setup`; verificar `divergencias: []`, `without_role: 0` e que iniciar uma manutenção pelo app funciona.
+- [x] 8.11 Corrigir a confirmação de senha em `auth/change_password` e `reset/confirm` (a entrada `password` chega em hash; comparar com `security.check_password`) e a listagem `users GET` (consulta sem busca por texto nem join); verificado no navegador: usuário criado aparece na lista e troca a senha temporária no primeiro acesso.

@@ -22,7 +22,14 @@ query "reset/confirm" verb=POST {
   }
 
   stack {
-    precondition ($input.nova_senha == $input.confirmar_senha) {
+    // nova_senha é do tipo password: o Xano já a recebe em hash, então a confirmação (texto puro) é conferida
+    // com security.check_password; == nunca seria igual (ver auth/change_password)
+    security.check_password {
+      text_password = $input.confirmar_senha
+      hash_password = $input.nova_senha
+    } as $confirmacao_ok
+
+    precondition ($confirmacao_ok) {
       error_type = "inputerror"
       error = "confirmar_senha does not match nova_senha."
     }

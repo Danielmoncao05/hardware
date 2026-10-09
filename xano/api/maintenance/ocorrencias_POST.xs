@@ -30,7 +30,8 @@ query ocorrencias verb=POST {
       value = $input.relatada_em ?? now
     }
 
-    precondition ($relatada_em <= now) {
+    // Só valida a data informada pelo cliente: o padrão (now) nunca está no futuro (ver manutencoes_iniciar_POST)
+    precondition ($input.relatada_em == null || $input.relatada_em <= now) {
       error_type = "inputerror"
       error = "relatada_em cannot be in the future."
     }

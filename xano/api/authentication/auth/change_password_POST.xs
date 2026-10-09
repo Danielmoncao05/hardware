@@ -44,13 +44,21 @@ query "auth/change_password" verb=POST {
       error = "senha_atual is incorrect."
     }
 
-    precondition ($input.nova_senha == $input.confirmar_senha) {
+    // nova_senha é do tipo password: o Xano já a recebe em hash. Por isso as comparações usam
+    // security.check_password com a confirmação (texto puro), nunca == com nova_senha, que nunca seria igual.
+    security.check_password {
+      text_password = $input.confirmar_senha
+      hash_password = $input.nova_senha
+    } as $confirmacao_ok
+
+    precondition ($confirmacao_ok) {
       error_type = "inputerror"
       error = "confirmar_senha does not match nova_senha."
     }
 
+    // Com a confirmação igual à nova senha, ela serve de texto puro para comparar com a senha atual
     security.check_password {
-      text_password = $input.nova_senha
+      text_password = $input.confirmar_senha
       hash_password = $user.password
     } as $mesma_senha
 

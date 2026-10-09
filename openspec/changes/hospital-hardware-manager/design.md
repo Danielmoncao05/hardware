@@ -29,6 +29,17 @@ Ver `proposal.md` para a motivação e as três specs de capacidades para o comp
 - **Autenticação:** estender o modelo de autenticação existente do Xano. Desativar o cadastro público em produção; administradores criam e desabilitam contas. Manter as credenciais no mecanismo de autenticação, nunca em tabelas gerais do aplicativo ou em estado visível ao cliente.
 - **Alternativas consideradas:** uma API própria com banco relacional separado daria portabilidade, mas duplicaria a base do Xano já existente. Um design em que o navegador acessa o banco diretamente exporia credenciais e enfraqueceria a autorização centralizada, por isso não foi escolhido.
 
+### Desempenho com o limite do plano do Xano
+
+O plano Free do Xano aceita 10 requisições a cada 20 segundos. Para a navegação não esbarrar nesse limite:
+
+- **Perfil reaproveitado por 60 s**: o guard das páginas só consulta `auth/me` de novo depois desse tempo. Mudanças de perfil, permissão ou habilitação aparecem na interface em até 60 s; a API as aplica na hora em toda operação.
+- **Listas de opções reaproveitadas por 5 min** (localizações, categorias, fabricantes, modelos, componentes, responsáveis). A tela de catálogos atualiza essas listas a partir dos próprios dados depois de cada cadastro ou edição.
+- **Páginas de listagem reaproveitadas por 30 s** (equipamentos, manutenções, ocorrências, relatórios). Qualquer escrita (método diferente de GET) esvazia esse cache, e o encerramento da sessão também.
+- **Filtragem local:** quando todas as ocorrências ou manutenções do filtro cabem em uma resposta (até 100), abas, paginação e calendário são filtrados no app, com as mesmas regras da API (trabalho pendente = preventivas planejadas, comparando com a data de hoje em UTC). Acima disso, a paginação continua na API.
+- **Resposta imediata:** abas, páginas e filtros mudam na tela antes da resposta da API, com indicação de carregamento.
+- **HTTP 429:** o cliente espera (respeitando `Retry-After`, no máximo 8 s) e tenta de novo até 2 vezes. Se ainda falhar, mostra uma mensagem em português.
+
 ### Schema relacional e chaves
 
 As tabelas usam uma chave primária `id` gerada e imutável. O Xano exige essa chave em toda tabela, então `role_permissions` também tem uma chave `id`, e o par (`role_id`, `permission_id`) é protegido por um índice único em vez de uma chave primária composta (ver `validation.md`). A tabela associativa `equipamento_componentes` usa seu próprio `id` gerado para que o mesmo item do catálogo de componentes possa ter várias instâncias instaladas em um equipamento. As chaves estrangeiras usam semântica de exclusão restritiva para registros com histórico; dados de referência são desativados em vez de apagados fisicamente. Colunas obrigatórias não aceitam null. Colunas opcionais aceitam null. As datas e horas são gravadas de forma consistente em UTC e apresentadas no fuso da instituição (`HHM_TIMEZONE`), o mesmo fuso usado para interpretar horários digitados nos formulários.
@@ -115,6 +126,8 @@ Não adicionar colunas, telas, endpoints, análises ou exportações relacionada
 9. **Usuários e perfis:** exclusivo de administradores: criação de usuários, habilitar/desabilitar e gestão de perfis e permissões.
 10. **Relatórios e auditoria:** visões filtradas de inventário, status/localização, manutenções pendentes, histórico de manutenções, ocorrências e auditoria exclusiva de administradores; os relatórios operacionais filtrados podem ser exportados em CSV.
 
+Formulários não criam registros duplicados com clique duplo: o botão fica em carregamento durante o envio, e um envio repetido que chega depois do primeiro é descartado (diálogo já fechado ou chave do formulário já trocada). Horários pré-preenchidos ("agora") são calculados quando o diálogo abre.
+
 ## Riscos / Concessões
 
 - [Os perfis de usuário existentes no Xano (`admin`/`member`) não correspondem ao novo conjunto de perfis] → Migrar `admin` para `administrator`, `member` para `viewer` por padrão e exigir revisão de um administrador antes do lançamento.
@@ -123,6 +136,9 @@ Não adicionar colunas, telas, endpoints, análises ou exportações relacionada
 - [Anotações livres de ocorrências poderiam conter informações de pacientes apesar do limite do produto] → Manter os campos explicitamente técnicos, não criar campos de pacientes, avisar os usuários na interface, restringir exportações e definir a política operacional de retenção/acesso antes da produção.
 - [Trocar perfis ou desativar dados de referência pode afetar o acesso e a exibição do histórico] → Preservar as linhas referenciadas, usar flags de ativo, validar mudanças na API e manter os eventos de auditoria.
 - [As capacidades relacionais nativas do Xano e o schema de exportação precisam ser validados contra cada restrição planejada] → Verificar restrições de unicidade, comportamento de chaves estrangeiras, transações e suporte a índices no workspace do Xano de destino antes da implementação; relatar qualquer invariante não suportado em vez de enfraquecê-lo em silêncio.
+- [O plano Free do Xano limita as requisições, e várias telas abertas ou recarregadas seguidamente podem estourar o limite] → Caches e filtragem local descritos em "Desempenho com o limite do plano do Xano"; em produção, plano pago (ver `docs/operations.md`).
+- [O Xano às vezes ignora o bloco de paginação e devolve a lista inteira, sem metadados] → O frontend normaliza toda listagem para `{items, nextPage, itemsTotal}` (`api.as_page`) e recorta a página. Funções do Xano que percorrem dados não dependem da paginação (`setup/scrub_audit_credentials` lê sem paginar). A causa ainda não foi identificada; quando vem a lista inteira, a tela baixa todos os registros.
+- [Comparar um valor padrão `now` com um segundo `now` falhou no Xano ("iniciada_em cannot be in the future" sem data enviada)] → Datas opcionais só são validadas quando o cliente as envia (iniciar manutenção, registrar ocorrência).
 
 ## Plano de migração
 
