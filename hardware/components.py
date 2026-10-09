@@ -236,6 +236,19 @@ def nav_items() -> list[rx.Component]:
     return items
 
 
+def theme_toggle(**props) -> rx.Component:
+    """Alterna claro/escuro só no navegador (sem ida ao servidor); a escolha fica salva no localStorage."""
+    return rx.icon_button(
+        rx.color_mode_cond(rx.icon("moon", size=18), rx.icon("sun", size=18)),
+        on_click=rx.toggle_color_mode,
+        variant="ghost",
+        color_scheme="gray",
+        aria_label=rx.color_mode_cond("Ativar tema escuro", "Ativar tema claro"),
+        title=rx.color_mode_cond("Ativar tema escuro", "Ativar tema claro"),
+        **props,
+    )
+
+
 def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Component:
     """Estrutura das páginas autenticadas: barra lateral no desktop, menu recolhível no tablet/celular."""
     sidebar = rx.vstack(
@@ -246,7 +259,12 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
             rx.text(AuthState.user_name, weight="medium", size="2"),
             rx.text(AuthState.role, size="1", color_scheme="gray"),
             rx.link("Alterar senha", href="/trocar-senha", size="1"),
-            rx.button("Sair", on_click=AuthState.logout, variant="soft", size="1"),
+            rx.hstack(
+                rx.button("Sair", on_click=AuthState.logout, variant="soft", size="1"),
+                theme_toggle(size="1"),
+                spacing="3",
+                align="center",
+            ),
             padding="0.75rem",
             spacing="1",
             align="start",
@@ -290,6 +308,8 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
                     rx.heading(title, size="6", as_="h1"),
                     rx.spacer(),
                     actions if actions is not None else rx.fragment(),
+                    # Com a barra lateral oculta, o botão de tema fica no topo (mesmos breakpoints do mobile_menu)
+                    rx.box(theme_toggle(), display=["block", "block", "block", "none"]),
                     align="center",
                     width="100%",
                     wrap="wrap",

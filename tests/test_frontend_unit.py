@@ -285,6 +285,27 @@ def test_every_nav_link_is_gated_by_its_page_permission():
         assert flag_perm[flag.strip('"')] in guarded, (route, flag, guarded)
 
 
+def test_light_theme_is_the_default():
+    rxconfig = (ROOT / "rxconfig.py").read_text(encoding="utf-8")
+    assert 'default_color_mode="light"' in rxconfig
+    # appearance fixo no tema raiz travaria o modo e anularia a alternância
+    assert "appearance" not in rxconfig
+
+
+def test_theme_toggle_switches_mode_with_portuguese_labels():
+    from hardware.components import theme_toggle
+
+    rendered = str(theme_toggle().render())
+    assert "toggleColorMode" in rendered
+    assert "Ativar tema escuro" in rendered and "Ativar tema claro" in rendered
+
+
+def test_theme_toggle_is_in_sidebar_and_top_bar():
+    components = (ROOT / "hardware" / "components.py").read_text(encoding="utf-8")
+    body = components[components.index("def layout(") : components.index("def loading_overlay")]
+    assert body.count("theme_toggle(") == 2
+
+
 # ------------------------------------------------------------------ edição de catálogo: referências opcionais
 def _optional_ref(edit_row: dict, form: dict, key: str, options: list[dict]):
     from types import SimpleNamespace
