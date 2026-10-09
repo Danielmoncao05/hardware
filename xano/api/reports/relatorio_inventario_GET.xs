@@ -1,5 +1,5 @@
-// Relatório de inventário / status / localização (reports.read). formato = "json" devolve a página
-// paginada da tela; formato = "csv" devolve todas as linhas encontradas (até 10.000) com os mesmos filtros.
+// Relatório de inventário / status / localização (reports.read). formato = "json" devolve as linhas
+// para a tela (o app recorta a página); formato = "csv" devolve todas as linhas encontradas (até 10.000) com os mesmos filtros.
 // As colunas são só campos de gestão de equipamentos.
 query "relatorios/inventario" verb=GET {
   api_group = "Reports"
@@ -77,10 +77,8 @@ query "relatorios/inventario" verb=GET {
         localizacao: $db.localizacoes.nome
       }
 
-      return = {
-        type  : "list"
-        paging: {page: $page, per_page: $per_page, totals: true}
-      }
+      // Sem paginação: a consulta paginada devolvia lista vazia no Xano (ver users GET); o app recorta a página
+      return = {type: "list"}
     } as $result
 
     conditional {
@@ -101,7 +99,7 @@ query "relatorios/inventario" verb=GET {
               {key: "valor_aquisicao", label: "Valor de aquisição"}
               {key: "vida_util_anos", label: "Vida útil (anos)"}
             ]
-            linhas : $result.items
+            linhas : $result
           }
         } as $csv
 

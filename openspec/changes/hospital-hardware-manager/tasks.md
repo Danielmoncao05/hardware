@@ -62,4 +62,4 @@
 - [ ] 8.10 Publicar no Xano os endpoints corrigidos (8.7, 8.8) e rodar `setup/run_deployment_setup`; verificar `divergencias: []`, `without_role: 0` e que iniciar uma manutenção pelo app funciona.
 - [x] 8.11 Corrigir a confirmação de senha em `auth/change_password` e `reset/confirm` (a entrada `password` chega em hash; comparar com `security.check_password`); verificado no navegador: o usuário criado troca a senha temporária no primeiro acesso.
 - [x] 8.12 Fazer `users GET` listar as contas: com paginação a consulta devolvia lista vazia; sem paginação (o app recorta a página) funciona. Verificado no navegador: os usuários criados aparecem na tela de usuários.
-- [ ] 8.13 Revisar os demais endpoints que paginam (inventário, manutenções, ocorrências, relatórios, auditoria) e verificar se algum devolve lista vazia ou incompleta no lugar da página.
+- [ ] 8.13 Revisar os demais endpoints que paginam e verificar se algum devolve lista vazia ou incompleta no lugar da página. Feito: os três relatórios operacionais (sem paginação na consulta; tela e CSV verificados no navegador). Falta: listas de inventário, manutenções, ocorrências, auditoria e `my_events`.

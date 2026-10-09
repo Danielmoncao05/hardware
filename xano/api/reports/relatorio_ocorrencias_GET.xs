@@ -86,10 +86,8 @@ query "relatorios/ocorrencias" verb=GET {
         relatada_por     : $db.user.name
       }
 
-      return = {
-        type  : "list"
-        paging: {page: $page, per_page: $per_page, totals: true}
-      }
+      // Sem paginação: a consulta paginada devolvia lista vazia no Xano (ver users GET); o app recorta a página
+      return = {type: "list"}
     } as $result
 
     conditional {
@@ -110,7 +108,7 @@ query "relatorios/ocorrencias" verb=GET {
               {key: "resumo_resolucao", label: "Resumo da resolução"}
               {key: "motivo_cancelamento", label: "Motivo do cancelamento"}
             ]
-            linhas : $result.items
+            linhas : $result
           }
         } as $csv
 
