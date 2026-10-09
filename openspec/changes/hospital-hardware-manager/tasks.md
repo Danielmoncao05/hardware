@@ -60,4 +60,6 @@
 - [x] 8.8 Validar `iniciada_em` e `relatada_em` só quando enviadas pelo cliente.
 - [x] 8.9 Criar o script de dados de demonstração (`scripts/seed_demo.py`), que cadastra pela API, com prefixo DEMO e de forma reexecutável.
 - [ ] 8.10 Publicar no Xano os endpoints corrigidos (8.7, 8.8) e rodar `setup/run_deployment_setup`; verificar `divergencias: []`, `without_role: 0` e que iniciar uma manutenção pelo app funciona.
-- [x] 8.11 Corrigir a confirmação de senha em `auth/change_password` e `reset/confirm` (a entrada `password` chega em hash; comparar com `security.check_password`) e a listagem `users GET` (consulta sem busca por texto nem join); verificado no navegador: usuário criado aparece na lista e troca a senha temporária no primeiro acesso.
+- [x] 8.11 Corrigir a confirmação de senha em `auth/change_password` e `reset/confirm` (a entrada `password` chega em hash; comparar com `security.check_password`); verificado no navegador: o usuário criado troca a senha temporária no primeiro acesso.
+- [x] 8.12 Fazer `users GET` listar as contas: com paginação a consulta devolvia lista vazia; sem paginação (o app recorta a página) funciona. Verificado no navegador: os usuários criados aparecem na tela de usuários.
+- [ ] 8.13 Revisar os demais endpoints que paginam (inventário, manutenções, ocorrências, relatórios, auditoria) e verificar se algum devolve lista vazia ou incompleta no lugar da página.
