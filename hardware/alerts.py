@@ -47,10 +47,17 @@ def signature(row: dict) -> str:
     return f"{row.get('saude')}|{reasons(row)}"
 
 
+def current_list(rows: list[dict]) -> list[dict]:
+    """Situação atual para o sino da barra superior: todos os equipamentos que precisam de atenção, críticos primeiro."""
+    return new_alerts(rows, {})
+
+
 class AlertState(AuthState):
     popup_open: bool = False
     popup_items: list[dict] = []
     popup_extra: int = 0
+    # Lista completa da última consulta (não só as novidades), mostrada pelo sino da barra superior
+    current_items: list[dict] = []
 
     _seen: dict[str, str] = {}
     _seen_user: int = 0
@@ -72,6 +79,8 @@ class AlertState(AuthState):
         except api.ApiError:
             return  # Aviso é complementar: um erro (ex.: limite de requisições) só adia para a próxima consulta
         rows = [r | {"motivos": reasons(r)} for r in rows or []]
+        # Atualizada a cada consulta, haja novidade ou não (o pop-up só abre com novidade)
+        self.current_items = current_list(rows)
         fresh = new_alerts(rows, self._seen)
         self._seen = {str(r["id"]): signature(r) for r in rows}
         if not fresh:
@@ -98,6 +107,64 @@ def health_badge(value) -> rx.Component:
         rx.match(value, *[(k, v) for k, v in HEALTH.items()], value),
         color_scheme=rx.match(value, *[(k, c) for k, c in HEALTH_COLOR.items()], "gray"),
         variant="solid",
+    )
+
+
+def alerts_bell() -> rx.Component:
+    """Sino da barra superior: contagem e lista atual dos equipamentos que precisam de atenção (da última consulta,
+    sem requisição extra). Só para quem pode ler relatórios, a mesma permissão de GET alertas."""
+    s = AlertState
+    count = s.current_items.length()
+    label = rx.cond(count > 0, "Alertas: " + count.to_string() + " equipamento(s) precisam de atenção", "Alertas: nenhum equipamento precisa de atenção")
+    return rx.cond(
+        AuthState.can_read_reports,
+        rx.popover.root(
+            rx.popover.trigger(
+                rx.box(
+                    rx.icon_button(rx.icon("bell", size=18), variant="ghost", color_scheme="gray", aria_label=label, title=label),
+                    rx.cond(
+                        count > 0,
+                        rx.badge(count, color_scheme="red", variant="solid", radius="full", size="1", position="absolute", top="-0.35rem", right="-0.35rem", aria_hidden="true"),
+                        rx.fragment(),
+                    ),
+                    position="relative",
+                ),
+            ),
+            rx.popover.content(
+                rx.vstack(
+                    rx.text("Precisam de atenção", weight="bold", size="2"),
+                    rx.cond(
+                        count > 0,
+                        rx.vstack(
+                            rx.foreach(
+                                s.current_items[:POPUP_LIMIT],
+                                lambda e: rx.hstack(
+                                    health_badge(e["saude"]),
+                                    rx.vstack(
+                                        rx.link(e["numero_patrimonio"], " — ", e["nome"], href="/equipamentos/" + e["id"].to_string(), size="2", weight="medium"),
+                                        rx.text(e["localizacao"], " · ", e["motivos"], size="1", color_scheme="gray"),
+                                        spacing="0",
+                                    ),
+                                    align="start",
+                                    spacing="2",
+                                    width="100%",
+                                ),
+                            ),
+                            spacing="2",
+                            width="100%",
+                            role="list",
+                        ),
+                        rx.text("Nenhum equipamento precisa de atenção agora.", size="2", color_scheme="gray"),
+                    ),
+                    rx.link("Ver acompanhamento", href="/acompanhamento", size="2"),
+                    spacing="3",
+                    width="100%",
+                ),
+                width="22rem",
+                max_width="calc(100vw - 2rem)",
+            ),
+        ),
+        rx.fragment(),
     )
 
 

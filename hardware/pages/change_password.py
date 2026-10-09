@@ -62,7 +62,7 @@ class ChangePasswordState(AuthState):
         finally:
             self.saving = False
         yield rx.toast.success("Senha alterada.")
-        yield rx.redirect("/")
+        yield rx.redirect("/painel")
 
 
 def change_password_page() -> rx.Component:
@@ -116,7 +116,7 @@ def change_password_page() -> rx.Component:
                     aria_label="Alterar senha",
                 ),
                 rx.hstack(
-                    rx.cond(s.must_change_password, rx.fragment(), rx.link("Voltar", href="/", size="2")),
+                    rx.cond(s.must_change_password, rx.fragment(), rx.link("Voltar", href="/painel", size="2")),
                     rx.spacer(),
                     rx.button("Sair", variant="ghost", size="1", on_click=AuthState.logout),
                     width="100%",

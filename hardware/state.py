@@ -38,6 +38,20 @@ class AuthState(rx.State):
     login_error: str = ""
     login_loading: bool = False
 
+    # ---- identificação no menu do usuário ----
+    @rx.var
+    def display_name(self) -> str:
+        """Nome do usuário, ou o e-mail quando a conta não tem nome cadastrado."""
+        return self.user_name.strip() or self.user_email
+
+    @rx.var
+    def user_initials(self) -> str:
+        """Iniciais para o avatar: duas primeiras palavras do nome, ou a primeira letra do e-mail."""
+        words = self.user_name.split()
+        if words:
+            return "".join(w[0] for w in words[:2]).upper()
+        return self.user_email[:1].upper() or "?"
+
     # ---- flags de permissão (só para a interface) ----
     @rx.var
     def logged_in(self) -> bool:
@@ -163,7 +177,7 @@ class AuthState(rx.State):
             return
         finally:
             self.login_loading = False
-        yield rx.redirect("/trocar-senha" if self.must_change_password else "/")
+        yield rx.redirect("/trocar-senha" if self.must_change_password else "/painel")
 
     @rx.event
     def logout(self):
@@ -188,7 +202,7 @@ class AuthState(rx.State):
             # Senha temporária ainda ativa: nada mais pode ser usado até ela ser trocada
             return [rx.redirect("/trocar-senha")]
         if permissions and not any(p in self.permissions for p in permissions):
-            # Nunca redirecionar para outra página protegida (ex.: "/"): isso entra em loop quando ela também é negada
+            # Nunca redirecionar para outra página protegida (ex.: "/painel"): isso entra em loop quando ela também é negada
             return [rx.redirect("/sem-acesso")]
         return None
 

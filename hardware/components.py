@@ -6,7 +6,7 @@ e a ordem dos campos no DOM é a ordem de foco do teclado.
 
 import reflex as rx
 
-from .alerts import alert_watcher
+from .alerts import alert_watcher, alerts_bell
 from .options import TZ_NAME
 from .state import AuthState
 
@@ -62,6 +62,11 @@ def timestamp_text(value, fmt: str = "DD/MM/YYYY HH:mm") -> rx.Component:
     """Data e hora armazenada, mostrada no fuso da instituição (HHM_TIMEZONE): o mesmo fuso usado para
     interpretar horários digitados nos formulários, então entrada e exibição sempre coincidem, qualquer que seja o fuso do navegador."""
     return rx.cond(value, rx.moment(value, format=fmt, tz=TZ_NAME), rx.text("—"))
+
+
+def current_year() -> rx.Component:
+    """Ano corrente no fuso da instituição, calculado no navegador (não fica preso ao ano da compilação)."""
+    return rx.moment(format="YYYY", tz=TZ_NAME)
 
 
 def date_text(value) -> rx.Component:
@@ -201,9 +206,12 @@ def submit_button(text: str, loading=False, **props) -> rx.Component:
 
 
 # ---- layout ----
+# Nome do aplicativo no topo das telas, no login e nos títulos das páginas
+BRAND = "HospitalTech"
+
 # (texto, rota, ícone, flag do AuthState exigida para mostrar o link: a mesma permissão que o guard da página verifica)
 NAV = [
-    ("Painel", "/", "layout_dashboard", "can_read_reports"),
+    ("Painel", "/painel", "layout_dashboard", "can_read_reports"),
     ("Acompanhamento", "/acompanhamento", "activity", "can_read_reports"),
     ("Equipamentos", "/equipamentos", "monitor", "can_read_operational"),
     ("Manutenções", "/manutencoes", "wrench", "can_read_operational"),
@@ -249,44 +257,49 @@ def theme_toggle(**props) -> rx.Component:
     )
 
 
-def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Component:
-    """Estrutura das páginas autenticadas: barra lateral no desktop, menu recolhível no tablet/celular."""
-    sidebar = rx.vstack(
-        rx.heading("Gestão de Equipamentos", size="4", padding="0.75rem"),
-        rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
-        rx.spacer(),
-        rx.vstack(
-            rx.text(AuthState.user_name, weight="medium", size="2"),
-            rx.text(AuthState.role, size="1", color_scheme="gray"),
-            rx.link("Alterar senha", href="/trocar-senha", size="1"),
-            rx.hstack(
-                rx.button("Sair", on_click=AuthState.logout, variant="soft", size="1"),
-                theme_toggle(size="1"),
-                spacing="3",
-                align="center",
-            ),
-            padding="0.75rem",
-            spacing="1",
-            align="start",
+TOP_BAR_HEIGHT = "3.5rem"
+
+
+def user_menu() -> rx.Component:
+    """Avatar com as iniciais; abre nome (ou e-mail), perfil, "Alterar senha" e "Sair"."""
+    return rx.menu.root(
+        rx.menu.trigger(
+            rx.button(
+                rx.avatar(fallback=AuthState.user_initials, size="2", radius="full"),
+                variant="ghost",
+                color_scheme="gray",
+                radius="full",
+                padding="0",
+                aria_label="Menu do usuário: " + AuthState.display_name,
+                title=AuthState.display_name,
+            )
         ),
-        height="100vh",
-        width="15rem",
-        min_width="15rem",
-        border_right=f"1px solid {rx.color('gray', 5)}",
-        position="sticky",
-        top="0",
-        display=["none", "none", "none", "flex"],
+        rx.menu.content(
+            rx.box(
+                rx.text(AuthState.display_name, weight="medium", size="2"),
+                rx.text(AuthState.role, size="1", color_scheme="gray"),
+                padding_x="0.75rem",
+                padding_y="0.5rem",
+            ),
+            rx.menu.separator(),
+            rx.menu.item(rx.icon("key_round", size=14), "Alterar senha", on_select=rx.redirect("/trocar-senha")),
+            rx.menu.item(rx.icon("log_out", size=14), "Sair", on_select=AuthState.logout, color_scheme="red"),
+            align="end",
+        ),
     )
+
+
+def top_bar() -> rx.Component:
+    """Barra superior das telas autenticadas: marca à esquerda; tema, alertas e usuário à direita."""
     mobile_menu = rx.box(
         rx.drawer.root(
-            rx.drawer.trigger(rx.icon_button(rx.icon("menu"), variant="ghost", aria_label="Abrir menu")),
+            rx.drawer.trigger(rx.icon_button(rx.icon("menu"), variant="ghost", color_scheme="gray", aria_label="Abrir menu")),
             rx.drawer.overlay(),
             rx.drawer.portal(
                 rx.drawer.content(
                     rx.vstack(
                         rx.drawer.close(rx.icon_button(rx.icon("x"), variant="ghost", aria_label="Fechar menu")),
                         rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
-                        rx.button("Sair", on_click=AuthState.logout, variant="soft"),
                         padding="1rem",
                         width="100%",
                     ),
@@ -299,34 +312,78 @@ def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Com
         ),
         display=["block", "block", "block", "none"],
     )
-    return rx.hstack(
-        sidebar,
-        rx.el.main(
-            rx.vstack(
-                rx.hstack(
-                    mobile_menu,
-                    rx.heading(title, size="6", as_="h1"),
-                    rx.spacer(),
-                    actions if actions is not None else rx.fragment(),
-                    # Com a barra lateral oculta, o botão de tema fica no topo (mesmos breakpoints do mobile_menu)
-                    rx.box(theme_toggle(), display=["block", "block", "block", "none"]),
-                    align="center",
-                    width="100%",
-                    wrap="wrap",
-                    spacing="3",
-                ),
-                *children,
-                spacing="4",
-                width="100%",
-                padding=["1rem", "1rem", "1.5rem"],
+    return rx.el.header(
+        rx.hstack(
+            mobile_menu,
+            rx.link(
+                rx.text(BRAND, size="5", weight="bold", color=rx.color("accent", 11)),
+                href="/painel",
+                underline="none",
+                aria_label=BRAND + ", ir para o painel",
             ),
-            id="conteudo",
+            rx.spacer(),
+            theme_toggle(),
+            alerts_bell(),
+            user_menu(),
+            align="center",
+            spacing="3",
+            height="100%",
+            padding_x=["1rem", "1rem", "1.5rem"],
+        ),
+        height=TOP_BAR_HEIGHT,
+        width="100%",
+        position="sticky",
+        top="0",
+        z_index="10",
+        background=rx.color("gray", 1),
+        border_bottom=f"1px solid {rx.color('gray', 5)}",
+    )
+
+
+def layout(title: str, *children, actions: rx.Component | None = None) -> rx.Component:
+    """Estrutura das páginas autenticadas: barra superior; abaixo, barra lateral de navegação no desktop (no
+    tablet/celular a navegação fica no menu recolhível da barra superior)."""
+    sidebar = rx.box(
+        rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
+        padding="0.75rem",
+        height=f"calc(100vh - {TOP_BAR_HEIGHT})",
+        width="15rem",
+        min_width="15rem",
+        border_right=f"1px solid {rx.color('gray', 5)}",
+        position="sticky",
+        top=TOP_BAR_HEIGHT,
+        overflow_y="auto",
+        display=["none", "none", "none", "block"],
+    )
+    return rx.box(
+        top_bar(),
+        rx.hstack(
+            sidebar,
+            rx.el.main(
+                rx.vstack(
+                    rx.hstack(
+                        rx.heading(title, size="6", as_="h1"),
+                        rx.spacer(),
+                        actions if actions is not None else rx.fragment(),
+                        align="center",
+                        width="100%",
+                        wrap="wrap",
+                        spacing="3",
+                    ),
+                    *children,
+                    spacing="4",
+                    width="100%",
+                    padding=["1rem", "1rem", "1.5rem"],
+                ),
+                id="conteudo",
+                width="100%",
+                min_width="0",
+            ),
+            spacing="0",
+            align="start",
             width="100%",
-            min_width="0",
         ),
         alert_watcher(),
-        spacing="0",
-        align="start",
         width="100%",
     )
 

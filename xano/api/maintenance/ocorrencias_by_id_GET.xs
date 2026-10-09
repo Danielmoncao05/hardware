@@ -35,11 +35,24 @@ query "ocorrencias/{ocorrencia_id}" verb=GET {
       output = ["id", "name"]
     } as $relator
 
-    db.get user {
-      field_name = "id"
-      field_value = $item.responsavel_id
-      output = ["id", "name"]
-    } as $responsavel
+    // Responsável é opcional: db.get com field_value nulo falha ("Missing param: field_value")
+    var $responsavel {
+      value = null
+    }
+
+    conditional {
+      if ($item.responsavel_id != null) {
+        db.get user {
+          field_name = "id"
+          field_value = $item.responsavel_id
+          output = ["id", "name"]
+        } as $resp
+
+        var.update $responsavel {
+          value = $resp
+        }
+      }
+    }
 
     db.query manutencoes {
       where = $db.manutencoes.ocorrencia_id == $input.ocorrencia_id

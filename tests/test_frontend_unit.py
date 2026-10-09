@@ -270,7 +270,7 @@ def test_every_nav_link_is_gated_by_its_page_permission():
     state = (ROOT / "hardware" / "state.py").read_text(encoding="utf-8")
     flag_perm = dict(re.findall(r"def (can_\w+)\(self\) -> bool:\s+return \"([\w.]+)\" in self\.permissions", state))
     pages = {
-        "/": "dashboard.py",
+        "/painel": "dashboard.py",
         "/acompanhamento": "tracking.py",
         "/equipamentos": "equipment.py",
         "/manutencoes": "maintenance.py",
@@ -300,10 +300,48 @@ def test_theme_toggle_switches_mode_with_portuguese_labels():
     assert "Ativar tema escuro" in rendered and "Ativar tema claro" in rendered
 
 
-def test_theme_toggle_is_in_sidebar_and_top_bar():
+def test_theme_toggle_is_only_in_the_top_bar():
+    """A barra superior aparece em todas as larguras, então o botão de tema fica só nela (uma vez)."""
     components = (ROOT / "hardware" / "components.py").read_text(encoding="utf-8")
-    body = components[components.index("def layout(") : components.index("def loading_overlay")]
-    assert body.count("theme_toggle(") == 2
+    shell = components[components.index("def user_menu(") : components.index("def loading_overlay")]
+    assert shell.count("theme_toggle(") == 1
+    top_bar = components[components.index("def top_bar(") : components.index("def layout(")]
+    assert "theme_toggle()" in top_bar
+
+
+def test_app_shell_brand_user_menu_and_alerts():
+    from hardware.components import BRAND, top_bar
+
+    rendered = str(top_bar().render())
+    assert BRAND == "HospitalTech" and "HospitalTech" in rendered
+    assert "Alterar senha" in rendered and "Sair" in rendered
+    components = (ROOT / "hardware" / "components.py").read_text(encoding="utf-8")
+    sidebar = components[components.index("def layout(") : components.index("def loading_overlay")]
+    # A barra lateral só tem a navegação: usuário e "Sair" ficam no menu do usuário
+    assert "logout" not in sidebar and "user_name" not in sidebar
+    assert "Gestão de Equipamentos" not in components
+    login = (ROOT / "hardware" / "pages" / "login.py").read_text(encoding="utf-8")
+    assert "rx.heading(BRAND" in login and "Gestão de Equipamentos" not in login
+
+
+def test_alerts_bell_requires_report_permission():
+    alerts = (ROOT / "hardware" / "alerts.py").read_text(encoding="utf-8")
+    bell = alerts[alerts.index("def alerts_bell(") : alerts.index("def alert_watcher(")]
+    assert "AuthState.can_read_reports" in bell and "s.current_items" in bell
+
+
+@pytest.mark.parametrize(
+    "name,email,display,initials",
+    [("Nadia Barros", "n@x.org", "Nadia Barros", "NB"), ("", "matheus@x.org", "matheus@x.org", "M"), ("  ", "", "", "?")],
+)
+def test_user_menu_display_name_and_initials(name, email, display, initials):
+    from types import SimpleNamespace
+
+    from hardware.state import AuthState
+
+    me = SimpleNamespace(user_name=name, user_email=email)
+    assert AuthState.computed_vars["display_name"].fget(me) == display
+    assert AuthState.computed_vars["user_initials"].fget(me) == initials
 
 
 # ------------------------------------------------------------------ edição de catálogo: referências opcionais
@@ -344,7 +382,7 @@ def test_temporary_password_routes_to_change_page_before_anything_else():
     guard = state[state.index("async def _guard") : state.index("async def _fetch_all")]
     # a verificação de troca obrigatória vem antes da verificação de permissão
     assert guard.index("must_change_password") < guard.index("if permissions and")
-    assert 'rx.redirect("/trocar-senha" if self.must_change_password else "/")' in state  # depois do login
+    assert 'rx.redirect("/trocar-senha" if self.must_change_password else "/painel")' in state  # depois do login
 
 
 def test_change_password_page_never_uses_the_guard():
@@ -445,3 +483,112 @@ def test_alerts_only_new_or_changed_and_critical_first():
     # Piorou (ocorrência crítica aberta): avisa de novo
     a2 = a | {"saude": "critico", "ocorrencias_abertas": 1, "maior_severidade": "critical"}
     assert [r["id"] for r in new_alerts([a2, b, c], seen)] == [1]
+
+
+def test_alert_bell_list_is_updated_even_without_news():
+    """O sino mostra a situação atual: a lista é atualizada a cada consulta, mesmo quando o pop-up não abre."""
+    from types import SimpleNamespace
+
+    from hardware.alerts import AlertState
+
+    rows = [
+        {"id": 1, "nome": "B", "saude": "atencao", "status": "under_maintenance"},
+        {"id": 2, "nome": "A", "saude": "critico", "status": "out_of_service"},
+    ]
+
+    async def call(*_args, **_kwargs):
+        return rows
+
+    fake = SimpleNamespace(
+        _token="tok", can_read_reports=True, must_change_password=False, _last_poll=0.0, _seen_user=7, user_id=7,
+        _seen={}, popup_open=False, popup_items=[], popup_extra=0, current_items=[], call=call,
+    )
+    poll = AlertState.poll.fn
+    _run(poll(fake))
+    assert [r["id"] for r in fake.current_items] == [2, 1] and fake.popup_open
+    # Segunda consulta sem novidades: o pop-up não reabre, mas a lista do sino continua atual
+    fake.popup_open, fake._last_poll = False, 0.0
+    rows.pop()
+    _run(poll(fake))
+    assert [r["id"] for r in fake.current_items] == [1] and not fake.popup_open
+
+
+# ------------------------------------------------------------------ painel (dashboard-redesign)
+def test_dashboard_long_date_in_portuguese():
+    from hardware.pages.dashboard import long_date
+
+    assert long_date(dt.date(2026, 10, 9)) == "Sexta-feira, 9 de outubro de 2026"
+    assert long_date(dt.date(2026, 3, 1)) == "Domingo, 1 de março de 2026"
+
+
+@pytest.mark.parametrize(
+    "planned,expected",
+    [("2026-10-09", "Hoje"), ("2026-10-10", "Amanhã"), ("2026-10-12", "Em 3 dias"), ("2026-10-01", "Atrasada"), ("", ""), (None, "")],
+)
+def test_dashboard_due_label(planned, expected):
+    from hardware.pages.dashboard import due_label
+
+    assert due_label(planned, dt.date(2026, 10, 9)) == expected
+
+
+@pytest.mark.parametrize(
+    "minutes_ago,expected",
+    [(0.2, "agora"), (10, "10 min atrás"), (125, "2 h atrás"), (60 * 24 + 5, "1 dia atrás"), (60 * 24 * 3, "3 dias atrás")],
+)
+def test_dashboard_elapsed_label(minutes_ago, expected):
+    from hardware.pages.dashboard import elapsed_label
+
+    now = dt.datetime(2026, 10, 9, 14, 0, tzinfo=TZ)
+    ms = int((now - dt.timedelta(minutes=minutes_ago)).timestamp() * 1000)
+    assert elapsed_label(ms, now) == expected
+    assert elapsed_label(None, now) == ""
+
+
+def test_dashboard_enter_animation_respects_reduced_motion():
+    css = (ROOT / "assets" / "dashboard.css").read_text(encoding="utf-8")
+    assert "@keyframes hhm-enter" in css and "prefers-reduced-motion: reduce" in css
+    app = (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
+    assert 'stylesheets=["/dashboard.css"]' in app
+    from hardware.pages.dashboard import enter
+
+    rendered = str(enter(rx_text("x"), 3).render())
+    assert "hhm-enter" in rendered and "180ms" in rendered
+
+
+def rx_text(value):
+    import reflex as rx
+
+    return rx.text(value)
+
+
+def test_dashboard_critical_action_requires_maintenance_permission():
+    """Um visualizador vê os cartões críticos, mas não a ação de abrir manutenção corretiva."""
+    src = (ROOT / "hardware" / "pages" / "dashboard.py").read_text(encoding="utf-8")
+    card = src[src.index("def critical_card(") : src.index("def critical_list(")]
+    assert "has_occ & s.can_manage_maintenance" in card
+    assert '"/manutencoes?equipamento_id=" + c["equipamento_id"].to_string() + "&ocorrencia_id="' in card
+
+
+# ------------------------------------------------------------------ página institucional
+def test_landing_page_is_public_at_root_and_dashboard_moved():
+    app = (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
+    landing = re.search(r"app\.add_page\(\s*landing_page,(.*?)\n\)", app, re.S)
+    assert landing and 'route="/"' in landing.group(1) and "on_load" not in landing.group(1)
+    assert re.search(r'add_page\(dashboard_page, route="/painel".*on_load=DashboardState\.on_load', app)
+
+
+def test_landing_page_content_links_and_images():
+    from hardware.pages.landing import landing_page
+
+    rendered = str(landing_page().render())
+    assert "HospitalTech" in rendered and "Sobre a HospitalTech" in rendered
+    hrefs = set(re.findall(r'(?:to|href):"([^"]*)"', rendered))
+    assert "/login" in hrefs and hrefs <= {"/login", "#recursos"}, hrefs
+    src = (ROOT / "hardware" / "pages" / "landing.py").read_text(encoding="utf-8")
+    images = re.findall(r'_image\(\s*"([^"]+)",\s*"([^"]+)"', src)
+    assert len(images) >= 3, images
+    for path, alt in images:
+        assert path.startswith("/landing/") and alt.strip(), (path, alt)
+        assert (ROOT / "assets" / path.lstrip("/")).is_file(), path
+    # Botões de acesso: um no cabeçalho, outros no conteúdo, todos via link para o login
+    assert src.count("_access_button(") >= 3

@@ -74,11 +74,24 @@ query "equipamentos/{equipamento_id}" verb=GET {
       return = {type: "count"}
     } as $ocorrencias_abertas
 
-    db.get user {
-      field_name = "id"
-      field_value = $equip.criado_por
-      output = ["id", "name"]
-    } as $criador
+    // criado_por é opcional: db.get com field_value nulo falharia ("Missing param: field_value")
+    var $criador {
+      value = null
+    }
+
+    conditional {
+      if ($equip.criado_por != null) {
+        db.get user {
+          field_name = "id"
+          field_value = $equip.criado_por
+          output = ["id", "name"]
+        } as $c
+
+        var.update $criador {
+          value = $c
+        }
+      }
+    }
   }
 
   response = $equip

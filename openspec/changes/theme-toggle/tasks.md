@@ -8,8 +8,8 @@
 ## 2. Botão de alternância
 
 - [x] 2.1 Criar `theme_toggle()` em `hardware/components.py`: `rx.icon_button` com `on_click=rx.toggle_color_mode`, ícone `moon`/`sun` via `rx.color_mode_cond` e `aria_label` "Ativar tema escuro"/"Ativar tema claro"; verificar com um teste em `tests/test_frontend_unit.py` que o componente renderiza com o evento de troca e os dois rótulos
-- [ ] 2.2 Incluir `theme_toggle()` no bloco do usuário da barra lateral em `layout()` e verificar no desktop que o botão aparece junto de "Alterar senha" / "Sair" e troca o tema sem recarregar a página
-- [ ] 2.3 Incluir `theme_toggle()` no cabeçalho de `layout()`, ao lado do botão de menu, com os mesmos breakpoints do `mobile_menu`; verificar em largura de tablet/celular que aparece no topo sem abrir o menu e que no desktop só o botão da barra lateral fica visível
+- [ ] 2.2 Incluir `theme_toggle()` na barra superior (`top_bar()`, change `dashboard-redesign`), visível em todas as larguras, e verificar no desktop que o botão aparece ao lado do sino e do menu do usuário e troca o tema sem recarregar a página
+- [ ] 2.3 Verificar em largura de tablet/celular que o botão de tema aparece na barra superior sem abrir o menu e que existe um único botão de tema em cada largura (teste `test_theme_toggle_is_only_in_the_top_bar`)
 
 ## 3. Verificação
 

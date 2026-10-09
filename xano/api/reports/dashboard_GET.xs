@@ -6,6 +6,10 @@
 //  - preventivas: atrasadas e previstas dentro de janela_dias (só planejadas; concluídas/canceladas ficam de fora)
 //  - ocorrências abertas e em andamento por severidade e status
 //  - manutenções concluídas nos últimos atividade_dias dias
+//  - equipamentos ativos por localização direta, ocorrências abertas/em andamento mais recentes e equipamentos
+//    críticos (fora de serviço ou com ocorrência crítica aberta/em andamento, mesma regra de GET alertas)
+// As listas não usam paginação (a consulta paginada devolvia lista vazia no Xano, ver users GET); os totais são a
+// contagem das listas e o app limita quantos itens mostra.
 query dashboard verb=GET {
   api_group = "Reports"
   auth = "user"
@@ -102,10 +106,7 @@ query dashboard verb=GET {
         numero_patrimonio: $db.equipamentos.numero_patrimonio
       }
 
-      return = {
-        type  : "list"
-        paging: {page: 1, per_page: 10, totals: true}
-      }
+      return = {type: "list"}
     } as $atrasadas
 
     db.query manutencoes {
@@ -114,6 +115,10 @@ query dashboard verb=GET {
           table: "equipamentos"
           where: $db.manutencoes.equipamento_id == $db.equipamentos.id
         }
+        localizacoes: {
+          table: "localizacoes"
+          where: $db.equipamentos.localizacao_id == $db.localizacoes.id
+        }
       }
 
       where = $db.manutencoes.tipo == "preventive" && $db.manutencoes.status == "planned" && $db.manutencoes.data_planejada >= $hoje && $db.manutencoes.data_planejada <= $limite && $db.equipamentos.localizacao_id ==? $input.localizacao_id
@@ -121,13 +126,151 @@ query dashboard verb=GET {
       eval = {
         equipamento      : $db.equipamentos.nome
         numero_patrimonio: $db.equipamentos.numero_patrimonio
+        localizacao      : $db.localizacoes.nome
       }
 
-      return = {
-        type  : "list"
-        paging: {page: 1, per_page: 10, totals: true}
-      }
+      return = {type: "list"}
     } as $proximas
+
+    // Equipamentos ativos por localização direta (só as localizações com algum equipamento)
+    db.query localizacoes {
+      sort = {nome: "asc"}
+      output = ["id", "nome"]
+      return = {type: "list"}
+    } as $localizacoes
+
+    var $por_localizacao {
+      value = []
+    }
+
+    foreach ($localizacoes) {
+      each as $loc {
+        db.query equipamentos {
+          where = $db.equipamentos.localizacao_id == $loc.id && $db.equipamentos.status != "decommissioned" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
+          return = {type: "count"}
+        } as $n
+
+        conditional {
+          if ($n > 0) {
+            var.update $por_localizacao {
+              value = $por_localizacao|push:{localizacao_id: $loc.id, localizacao: $loc.nome, total: $n}
+            }
+          }
+        }
+      }
+    }
+
+    // Ocorrências abertas e em andamento, mais recentes primeiro
+    db.query ocorrencias {
+      join = {
+        equipamentos: {
+          table: "equipamentos"
+          where: $db.ocorrencias.equipamento_id == $db.equipamentos.id
+        }
+        localizacoes: {
+          table: "localizacoes"
+          where: $db.equipamentos.localizacao_id == $db.localizacoes.id
+        }
+      }
+
+      // O status do equipamento não vai no eval: com a coluna status da ocorrência no output, o Xano não o
+      // encontrava ("Unable to locate var: oc.equipamento_status"); descomissionados saem pelo where
+      where = ($db.ocorrencias.status == "open" || $db.ocorrencias.status == "in_progress") && $db.equipamentos.status != "decommissioned" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
+      sort = {relatada_em: "desc"}
+      output = ["id", "equipamento_id", "severidade", "status", "descricao_tecnica", "relatada_em"]
+      eval = {
+        equipamento      : $db.equipamentos.nome
+        numero_patrimonio: $db.equipamentos.numero_patrimonio
+        localizacao      : $db.localizacoes.nome
+      }
+
+      return = {type: "list"}
+    } as $ocorrencias_recentes
+
+    // Equipamentos críticos: um item por equipamento, com a ocorrência crítica mais recente quando houver
+    db.query equipamentos {
+      join = {
+        localizacoes: {
+          table: "localizacoes"
+          where: $db.equipamentos.localizacao_id == $db.localizacoes.id
+        }
+      }
+
+      where = $db.equipamentos.status == "out_of_service" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
+      sort = {nome: "asc"}
+      output = ["id", "nome", "numero_patrimonio", "status"]
+      eval = {
+        localizacao: $db.localizacoes.nome
+      }
+
+      return = {type: "list"}
+    } as $fora_de_servico
+
+    var $criticos {
+      value = []
+    }
+
+    var $vistos {
+      value = {}
+    }
+
+    foreach ($ocorrencias_recentes) {
+      each as $oc {
+        var $k {
+          value = $oc.equipamento_id|to_text
+        }
+
+        conditional {
+          if ($oc.severidade == "critical" && ($vistos|get:$k) == null) {
+            var.update $criticos {
+              value = $criticos|push:{
+                equipamento_id   : $oc.equipamento_id
+                equipamento      : $oc.equipamento
+                numero_patrimonio: $oc.numero_patrimonio
+                localizacao      : $oc.localizacao
+                status           : null
+                ocorrencia_id    : $oc.id
+                descricao_tecnica: $oc.descricao_tecnica
+                ocorrencia_status: $oc.status
+              }
+            }
+
+            var.update $vistos {
+              value = $vistos|set:$k:true
+            }
+          }
+        }
+      }
+    }
+
+    foreach ($fora_de_servico) {
+      each as $eq {
+        var $k {
+          value = $eq.id|to_text
+        }
+
+        conditional {
+          if (($vistos|get:$k) == null) {
+            var.update $criticos {
+              value = $criticos|push:{
+                equipamento_id   : $eq.id
+                equipamento      : $eq.nome
+                numero_patrimonio: $eq.numero_patrimonio
+                localizacao      : $eq.localizacao
+                status           : $eq.status
+                ocorrencia_id    : null
+                descricao_tecnica: null
+                ocorrencia_status: null
+              }
+            }
+
+            var.update $vistos {
+              value = $vistos|set:$k:true
+            }
+          }
+        }
+      }
+    }
 
     // Ocorrências abertas por severidade e status (open / in_progress)
     var $ocorrencias {
@@ -203,10 +346,7 @@ query dashboard verb=GET {
         responsavel      : $db.user.name
       }
 
-      return = {
-        type  : "list"
-        paging: {page: 1, per_page: 10, totals: true}
-      }
+      return = {type: "list"}
     } as $recentes
   }
 
@@ -215,10 +355,13 @@ query dashboard verb=GET {
     equipamentos_ativos   : $por_status.operational + $por_status.under_maintenance + $por_status.out_of_service
     por_status            : $por_status
     por_categoria         : $por_categoria
-    preventivas_atrasadas : {total: $atrasadas.itemsTotal, itens: $atrasadas.items}
-    preventivas_proximas  : {total: $proximas.itemsTotal, itens: $proximas.items}
+    por_localizacao       : $por_localizacao
+    preventivas_atrasadas : {total: $atrasadas|count, itens: $atrasadas}
+    preventivas_proximas  : {total: $proximas|count, itens: $proximas}
     ocorrencias_abertas   : {total: $ocorrencias_total, por_status: $ocorrencias_por_status, por_severidade: $ocorrencias}
-    manutencoes_recentes  : {total: $recentes.itemsTotal, itens: $recentes.items}
+    ocorrencias_recentes  : $ocorrencias_recentes
+    criticos              : $criticos
+    manutencoes_recentes  : {total: $recentes|count, itens: $recentes}
   }
   guid = "ET9YfSEdH330FqZwMm6TQD_lFbI"
 }

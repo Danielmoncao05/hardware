@@ -20,11 +20,24 @@ query "auth/me" verb=GET {
       error = "Access denied."
     }
 
-    db.get roles {
-      field_name = "id"
-      field_value = $user.role_id
-      output = ["id", "nome"]
-    } as $role
+    // Conta sem perfil (role_id nulo): db.get com field_value nulo falharia ("Missing param: field_value")
+    var $role {
+      value = null
+    }
+
+    conditional {
+      if ($user.role_id != null) {
+        db.get roles {
+          field_name = "id"
+          field_value = $user.role_id
+          output = ["id", "nome"]
+        } as $r
+
+        var.update $role {
+          value = $r
+        }
+      }
+    }
 
     function.run "hhm/user_permissions" {
       input = {user_id: $user.id}

@@ -3,7 +3,7 @@
 import reflex as rx
 
 from .. import api
-from ..components import error_callout, submit_button, text_input
+from ..components import BRAND, error_callout, submit_button, text_input
 from ..state import AuthState
 
 
@@ -77,7 +77,7 @@ def _card(*children) -> rx.Component:
 
 def login_page() -> rx.Component:
     return _card(
-        rx.heading("Gestão de Equipamentos", size="6", as_="h1"),
+        rx.heading(BRAND, size="6", as_="h1"),
         rx.text("Entre com a conta fornecida pelo administrador.", color_scheme="gray", size="2"),
         rx.form(
             rx.vstack(
