@@ -1,5 +1,6 @@
 """Carrega as opções dos selects (localizações, modelos, usuários, ...) compartilhadas por várias páginas."""
 
+import asyncio
 import datetime as dt
 import os
 import time
@@ -59,13 +60,15 @@ class OptionsState(AuthState):
         """Carrega as listas de opções pedidas, reaproveitando as que têm menos de OPTIONS_TTL segundos
         (force=True sempre busca de novo). Um erro deixa só a lista daquele tipo como estava."""
         now = time.time()
-        for kind in kinds:
-            if not force and now - self._options_at.get(kind, 0.0) < OPTIONS_TTL:
+        todo = [k for k in kinds if force or now - self._options_at.get(k, 0.0) >= OPTIONS_TTL]
+        # Em paralelo: as listas não dependem umas das outras
+        results = await asyncio.gather(*(self._fetch_options(k) for k in todo), return_exceptions=True)
+        for kind, rows in zip(todo, results):
+            if isinstance(rows, api.ApiError):
                 continue
-            try:
-                self._set_options(kind, await self._fetch_options(kind))
-            except api.ApiError:
-                pass
+            if isinstance(rows, BaseException):
+                raise rows
+            self._set_options(kind, rows)
 
     async def _load_complete(self, group: str, path: str, params: dict) -> list[dict] | None:
         """Todos os registros da consulta quando cabem em uma página da API (até 100); senão None.

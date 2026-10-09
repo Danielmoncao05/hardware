@@ -1,5 +1,6 @@
 """Manutenções: listas de próximas/atrasadas/todas, calendário mensal, agendamento e transições de estado."""
 
+import asyncio
 import calendar
 import datetime as dt
 from typing import TypedDict
@@ -93,14 +94,16 @@ class MaintenanceState(OptionsState):
         self.transition = ""
         self.ocorrencia = {}
         self.responsavel_padrao = ""
-        await self._refresh()
+        # Em paralelo: lista, opções do formulário e busca de equipamentos são independentes
+        tasks = [self._refresh()]
         if self.can_work_maintenance:
-            await self._load_options("responsaveis_manutencao")
             self.equip_query = ""
-            await self._search_equipment("", self.equipamento_id)
-            ocorrencia_id = to_int(self._query_param("ocorrencia_id"))
-            if ocorrencia_id:
-                await self._open_corrective(ocorrencia_id)
+            tasks += [self._load_options("responsaveis_manutencao"), self._search_equipment("", self.equipamento_id)]
+        await asyncio.gather(*tasks)
+        # Depois da lista: _fetch limpa self.error ao terminar, o que apagaria um erro da corretiva vindo antes
+        ocorrencia_id = to_int(self._query_param("ocorrencia_id")) if self.can_work_maintenance else None
+        if ocorrencia_id:
+            await self._open_corrective(ocorrencia_id)
 
     async def _open_corrective(self, ocorrencia_id: int):
         """Abre o formulário de cadastro preenchido a partir de uma ocorrência aberta/em andamento."""

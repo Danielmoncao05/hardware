@@ -274,6 +274,67 @@ query acompanhamento verb=GET {
       return = {type: "list"}
     } as $pagina
 
+    // Última e próxima manutenção da página inteira em 2 consultas, com as mesmas regras de hhm/maintenance_dates.
+    // Antes a função rodava por equipamento: 2 consultas x 25 linhas = 50 consultas em sequência por página.
+    var $hoje {
+      value = now|format_timestamp:"Y-m-d":"UTC"
+    }
+
+    db.query manutencoes {
+      where = $db.manutencoes.equipamento_id in $pagina_ids && $db.manutencoes.status == "completed"
+      sort = {concluida_em: "desc"}
+      output = ["equipamento_id", "concluida_em"]
+      return = {type: "list"}
+    } as $concluidas
+
+    db.query manutencoes {
+      where = $db.manutencoes.equipamento_id in $pagina_ids && $db.manutencoes.tipo == "preventive" && $db.manutencoes.status == "planned" && $db.manutencoes.data_planejada >= $hoje
+      sort = {data_planejada: "asc"}
+      output = ["equipamento_id", "data_planejada"]
+      return = {type: "list"}
+    } as $planejadas
+
+    // Primeira linha de cada equipamento = a mais recente (concluídas) / a mais próxima (planejadas)
+    var $ultima_por_equip {
+      value = {}
+    }
+
+    foreach ($concluidas) {
+      each as $m {
+        var $k {
+          value = $m.equipamento_id|to_text
+        }
+
+        conditional {
+          if (($ultima_por_equip|get:$k) == null) {
+            var.update $ultima_por_equip {
+              value = $ultima_por_equip|set:$k:$m.concluida_em
+            }
+          }
+        }
+      }
+    }
+
+    var $proxima_por_equip {
+      value = {}
+    }
+
+    foreach ($planejadas) {
+      each as $m {
+        var $k {
+          value = $m.equipamento_id|to_text
+        }
+
+        conditional {
+          if (($proxima_por_equip|get:$k) == null) {
+            var.update $proxima_por_equip {
+              value = $proxima_por_equip|set:$k:$m.data_planejada
+            }
+          }
+        }
+      }
+    }
+
     var $linhas {
       value = []
     }
@@ -292,10 +353,6 @@ query acompanhamento verb=GET {
           value = ($atraso_por_equip|get:$k) ?? {total: 0, mais_antiga: null}
         }
 
-        function.run "hhm/maintenance_dates" {
-          input = {equipamento_id: $eq.id}
-        } as $datas
-
         var $saude {
           value = ($eq.status == "out_of_service" || $ocs.rank == 4) ? "critico" : (($eq.status == "under_maintenance" || $ocs.abertas > 0 || $at.total > 0) ? "atencao" : "ok")
         }
@@ -307,8 +364,8 @@ query acompanhamento verb=GET {
             |set:"maior_severidade":$ocs.severidade
             |set:"preventivas_atrasadas":$at.total
             |set:"atrasada_desde":$at.mais_antiga
-            |set:"ultima_manutencao":$datas.ultima_manutencao
-            |set:"proxima_manutencao":$datas.proxima_manutencao
+            |set:"ultima_manutencao":($ultima_por_equip|get:$k)
+            |set:"proxima_manutencao":($proxima_por_equip|get:$k)
           )
         }
       }

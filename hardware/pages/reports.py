@@ -4,6 +4,8 @@ O CSV é gerado pela API com os mesmos filtros do resultado na tela, então as l
 sempre correspondem ao que é mostrado (e ao que o usuário pode ler).
 """
 
+import asyncio
+
 import reflex as rx
 
 from .. import api
@@ -76,10 +78,11 @@ class ReportsState(OptionsState):
         redirect = await self._guard("reports.read")
         if redirect:
             return redirect
-        await self._load_options("localizacoes", "categorias", "fabricantes")
-        await self._fetch()
+        # Em paralelo: opções dos filtros, relatório e auditoria são independentes
+        tasks = [self._load_options("localizacoes", "categorias", "fabricantes"), self._fetch()]
         if self.can_read_audit:
-            await self._fetch_audit()
+            tasks.append(self._fetch_audit())
+        await asyncio.gather(*tasks)
 
     def _params(self) -> dict:
         f = self.filters

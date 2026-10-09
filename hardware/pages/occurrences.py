@@ -1,5 +1,7 @@
 """Ocorrências: filas por status, registro técnico, atribuição, resolução e cancelamento."""
 
+import asyncio
+
 import reflex as rx
 
 from .. import api
@@ -49,12 +51,14 @@ class OccurrenceState(OptionsState):
         self.page = 1
         self.report_open = False
         self.action = ""
-        await self._refresh()
+        # Em paralelo: lista, busca de equipamentos e responsáveis são independentes
+        tasks = [self._refresh()]
         if self.can_report_occurrence:
             self.equip_query = ""
-            await self._search_equipment("", self.equipamento_id)
+            tasks.append(self._search_equipment("", self.equipamento_id))
         if self.can_manage_occurrence:
-            await self._load_options("responsaveis_ocorrencia")
+            tasks.append(self._load_options("responsaveis_ocorrencia"))
+        await asyncio.gather(*tasks)
 
     async def _refresh(self):
         """Recarrega a base (lista completa, quando cabe) e mostra a aba atual."""

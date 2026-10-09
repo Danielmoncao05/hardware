@@ -208,6 +208,43 @@ def test_request_maps_errors(mock_transport, status, body, expected):
     assert exc.value.unauthorized == (status == 401)
 
 
+def test_requests_share_one_http_client(monkeypatch):
+    """Abrir conexão nova a cada chamada custava ~0,4 s; as chamadas do mesmo event loop reaproveitam o cliente."""
+    created = []
+    real_client = httpx.AsyncClient
+
+    def factory(**kw):
+        created.append(kw)
+        return real_client(transport=httpx.MockTransport(lambda request: httpx.Response(200, json={"ok": True})), **kw)
+
+    monkeypatch.setattr(api.httpx, "AsyncClient", factory)
+
+    async def three_calls():
+        await asyncio.gather(*(api.request("GET", "inventory", "equipamentos") for _ in range(3)))
+
+    _run(three_calls())
+    assert len(created) == 1 and created[0]["limits"] is api.LIMITS
+
+
+def test_get_is_retried_once_on_a_dropped_keepalive_connection(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(request.method)
+        if len(calls) == 1:
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx.Response(200, json={"ok": True})
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(api.httpx, "AsyncClient", lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    assert _run(api.request("GET", "inventory", "equipamentos")) == {"ok": True} and calls == ["GET", "GET"]
+    # Gravações não são repetidas: podem ter acontecido no servidor
+    calls.clear()
+    with pytest.raises(api.ApiError):
+        _run(api.request("POST", "inventory", "equipamentos", json={}))
+    assert calls == ["POST"]
+
+
 def test_request_retries_when_rate_limited(mock_transport, monkeypatch):
     captured, responses = mock_transport
     waits = []

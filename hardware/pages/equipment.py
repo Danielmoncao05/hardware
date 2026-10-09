@@ -1,5 +1,7 @@
 """Lista e detalhe de equipamentos (visão geral, componentes, histórico), cadastro/edição, movimentação e troca de status."""
 
+import asyncio
+
 import reflex as rx
 
 from .. import api
@@ -45,8 +47,8 @@ class EquipmentListState(OptionsState):
         redirect = await self._guard("operational.read")
         if redirect:
             return redirect
-        await self._load_options("localizacoes", "categorias", "fabricantes", "modelos")
-        await self._fetch()
+        # Em paralelo: as opções dos filtros não dependem da lista
+        await asyncio.gather(self._load_options("localizacoes", "categorias", "fabricantes", "modelos"), self._fetch())
 
     async def _fetch(self):
         self.loading = True
@@ -194,14 +196,18 @@ class EquipmentFormState(OptionsState):
         if redirect:
             return redirect
         self.error = ""
-        await self._load_options("localizacoes", "modelos")
         self.equipment_id = self._path_id() or 0
         self.current = {}
-        if self.equipment_id:
-            try:
-                self.current = await self.call("GET", "inventory", f"equipamentos/{self.equipment_id}")
-            except api.ApiError as err:
-                self.error = err.message
+
+        async def load_current():
+            if self.equipment_id:
+                try:
+                    self.current = await self.call("GET", "inventory", f"equipamentos/{self.equipment_id}")
+                except api.ApiError as err:
+                    self.error = err.message
+
+        # Em paralelo: as opções do formulário não dependem do registro em edição
+        await asyncio.gather(self._load_options("localizacoes", "modelos"), load_current())
         self.form_key += 1
 
     @rx.var
@@ -392,16 +398,20 @@ class EquipmentDetailState(OptionsState):
             return redirect
         self.equipment_id = self._path_id() or 0
         self.move_open = self.status_open = self.component_open = False
-        await self._fetch()
         if self.can_manage_inventory:
-            await self._load_options("localizacoes", "componentes")
+            await asyncio.gather(self._fetch(), self._load_options("localizacoes", "componentes"))
+        else:
+            await self._fetch()
 
     async def _fetch(self):
         self.loading = True
         self.error = ""
         try:
-            self.equip = await self.call("GET", "inventory", f"equipamentos/{self.equipment_id}")
-            hist = await self.call("GET", "maintenance", f"equipamentos/{self.equipment_id}/historico")
+            # Detalhe e histórico em paralelo (um não depende do outro)
+            self.equip, hist = await asyncio.gather(
+                self.call("GET", "inventory", f"equipamentos/{self.equipment_id}"),
+                self.call("GET", "maintenance", f"equipamentos/{self.equipment_id}/historico"),
+            )
             # Mais antigos primeiro: ordem cronológica como a API devolve (spec: Consultar o histórico do equipamento)
             self.historico = hist.get("eventos", [])
         except api.ApiError as err:

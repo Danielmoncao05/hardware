@@ -1,5 +1,6 @@
 """Acompanhamento por equipamento: saúde (crítico / atenção / OK) calculada no servidor por GET acompanhamento."""
 
+import asyncio
 import time
 
 import reflex as rx
@@ -42,8 +43,8 @@ class TrackingState(OptionsState):
         redirect = await self._guard("reports.read")
         if redirect:
             return redirect
-        await self._load_options("localizacoes", "categorias")
-        await self._fetch()
+        # Em paralelo: as opções dos filtros não dependem da lista
+        await asyncio.gather(self._load_options("localizacoes", "categorias"), self._fetch())
 
     async def _fetch(self):
         self.loading = True

@@ -65,6 +65,23 @@ def main():
             print(f"   {c.get('numero_patrimonio')} {c.get('equipamento')} [{c.get('status')}] ocorrência={c.get('ocorrencia_id')}")
         print(f"\n=== Tempo de GET dashboard: {', '.join(f'{t:.2f} s' for t in tempos)} (maior: {max(tempos):.2f} s)")
 
+        # Acompanhamento: sem filtro e com o filtro de saúde "critico" (o caso do "Carregando..." demorado)
+        for saude in (None, "critico"):
+            tempos_acomp = []
+            for _ in range(2):
+                time.sleep(2.5)
+                params = {"page": 1, "per_page": 25} | ({"saude": saude} if saude else {})
+                t0 = time.perf_counter()
+                resp = http.get(f"{BASE}/api:{REPORTS}/acompanhamento", headers=headers, params=params)
+                tempos_acomp.append(time.perf_counter() - t0)
+                if resp.status_code != 200:
+                    sys.exit(f"GET acompanhamento: HTTP {resp.status_code} {resp.text[:300]}")
+            body = resp.json()
+            com_datas = sum(1 for r in body.get("items") or [] if r.get("proxima_manutencao") or r.get("ultima_manutencao"))
+            print(f"=== Tempo de GET acompanhamento (saude={saude or 'todas'}): "
+                  f"{', '.join(f'{t:.2f} s' for t in tempos_acomp)} | linhas={len(body.get('items') or [])} "
+                  f"com datas de manutenção={com_datas} | resumo={body.get('resumo')}")
+
 
 if __name__ == "__main__":
     main()

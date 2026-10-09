@@ -3,6 +3,8 @@
 Registros são ativados/desativados, nunca apagados, para que referências históricas continuem válidas.
 """
 
+import asyncio
+
 import reflex as rx
 
 from .. import api
@@ -34,6 +36,7 @@ KINDS = {
 class CatalogState(OptionsState):
     tab: str = "fabricantes"
     show_inactive: bool = False
+    loading: bool = False
     rows: dict[str, list[dict]] = {k: [] for k in KINDS}
     error: str = ""
     form_error: str = ""
@@ -57,12 +60,14 @@ class CatalogState(OptionsState):
         self.error = ""
         params = {"include_inactive": self.show_inactive}
         try:
-            # Catálogos paginados são lidos até o fim para nenhum registro ficar oculto
-            fab = await self._fetch_all("inventory", "fabricantes", params)
-            cat = await self.call("GET", "inventory", "categorias", params=params)
-            mod = await self._fetch_all("inventory", "modelos", params)
-            comp = await self._fetch_all("inventory", "componentes", params)
-            loc = await self.call("GET", "inventory", "localizacoes", params=params)
+            # Catálogos paginados são lidos até o fim para nenhum registro ficar oculto; os cinco em paralelo
+            fab, cat, mod, comp, loc = await asyncio.gather(
+                self._fetch_all("inventory", "fabricantes", params),
+                self.call("GET", "inventory", "categorias", params=params),
+                self._fetch_all("inventory", "modelos", params),
+                self._fetch_all("inventory", "componentes", params),
+                self.call("GET", "inventory", "localizacoes", params=params),
+            )
             self.rows = {"fabricantes": fab, "categorias": cat, "modelos": mod, "componentes": comp, "localizacoes": loc}
         except api.ApiError as err:
             self.error = err.message
@@ -79,8 +84,19 @@ class CatalogState(OptionsState):
 
     @rx.event
     async def toggle_inactive(self, value: bool):
+        # Devolve o controle antes de buscar: o botão muda na hora, com "Carregando…", em vez de esperar os 5 catálogos
         self.show_inactive = value
-        await self._refresh()
+        self.loading = True
+        yield
+        try:
+            await self._refresh()
+        finally:
+            self.loading = False
+
+    @rx.var
+    def inactive_count(self) -> int:
+        """Quantos registros inativos vieram nos catálogos (só quando "Mostrar inativos" está ligado)."""
+        return sum(1 for rows in self.rows.values() for r in rows if not r.get("ativo"))
 
     @rx.event
     async def set_active(self, kind: str, record_id: int, ativo: bool):
@@ -478,9 +494,23 @@ def catalog_page() -> rx.Component:
         "Catálogos e localizações",
         error_callout(s.error),
         edit_dialog(),
-        rx.el.label(
-            rx.hstack(rx.switch(checked=s.show_inactive, on_change=s.toggle_inactive, id="f-show-inactive"), rx.text("Mostrar inativos", size="2")),
-            html_for="f-show-inactive",
+        # Rótulo ao lado do botão (não em volta dele): um <label> envolvendo o próprio controle dispara o clique duas vezes
+        rx.hstack(
+            rx.switch(checked=s.show_inactive, on_change=s.toggle_inactive, id="f-show-inactive", disabled=s.loading),
+            rx.el.label("Mostrar inativos", html_for="f-show-inactive", class_name="text-sm", cursor="pointer"),
+            rx.cond(s.loading, rx.spinner(size="1"), rx.fragment()),
+            rx.cond(
+                s.show_inactive & ~s.loading,
+                rx.text(
+                    rx.cond(s.inactive_count > 0, s.inactive_count.to_string() + " registro(s) inativo(s) incluído(s).", "Nenhum registro inativo cadastrado."),
+                    size="1",
+                    color_scheme="gray",
+                    role="status",
+                ),
+                rx.fragment(),
+            ),
+            align="center",
+            spacing="2",
         ),
         rx.tabs.root(
             rx.tabs.list(

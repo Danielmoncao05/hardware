@@ -4,6 +4,7 @@ Layout: cabeçalho com a data de hoje, quatro indicadores, distribuição por se
 recentes e equipamentos críticos; abaixo, em "Mais detalhes", os filtros de período e as seções anteriores.
 """
 
+import asyncio
 import datetime as dt
 
 import reflex as rx
@@ -84,8 +85,8 @@ class DashboardState(OptionsState):
         redirect = await self._guard("reports.read")
         if redirect:
             return redirect
-        await self._load_options("localizacoes")
-        await self._fetch()
+        # Em paralelo: as opções do filtro não dependem dos dados do painel
+        await asyncio.gather(self._load_options("localizacoes"), self._fetch())
 
     async def _fetch(self):
         self.loading = True

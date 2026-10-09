@@ -1,5 +1,6 @@
 """Exclusivo do administrador: criação de usuários, habilitar/desabilitar, atribuição de perfil e permissões dos perfis."""
 
+import asyncio
 from typing import TypedDict
 
 import reflex as rx
@@ -42,19 +43,25 @@ class UsersState(AuthState):
         await self._fetch()
 
     async def _fetch(self):
-        """Perfis primeiro e em separado: uma falha na lista de usuários não pode deixar o formulário de
-        cadastro sem opções de perfil."""
+        """Perfis e usuários em paralelo e com erros separados: uma falha na lista de usuários não pode deixar o
+        formulário de cadastro sem opções de perfil."""
         self.error = ""
-        try:
-            data = await self.call("GET", "users", "roles")
-            self.roles = data["roles"]
-            self.permission_list = data["permissions"]
-        except api.ApiError as err:
-            self.error = err.message
-        try:
-            self.users = await self._fetch_all("users", "users", page_size=100)
-        except api.ApiError as err:
-            self.error = err.message
+
+        async def load_roles():
+            try:
+                data = await self.call("GET", "users", "roles")
+                self.roles = data["roles"]
+                self.permission_list = data["permissions"]
+            except api.ApiError as err:
+                self.error = err.message
+
+        async def load_users():
+            try:
+                self.users = await self._fetch_all("users", "users", page_size=100)
+            except api.ApiError as err:
+                self.error = err.message
+
+        await asyncio.gather(load_roles(), load_users())
 
     @rx.var
     def role_options(self) -> list[dict]:

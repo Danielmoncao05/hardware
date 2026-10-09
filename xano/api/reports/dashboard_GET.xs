@@ -272,9 +272,15 @@ query dashboard verb=GET {
       }
     }
 
-    // Ocorrências abertas por severidade e status (open / in_progress)
+    // Ocorrências abertas por severidade e status (open / in_progress), contadas na lista $ocorrencias_recentes já
+    // buscada acima (mesmo filtro), em vez de 8 consultas de contagem
     var $ocorrencias {
-      value = {}
+      value = {
+        critical: {open: 0, in_progress: 0}
+        high    : {open: 0, in_progress: 0}
+        medium  : {open: 0, in_progress: 0}
+        low     : {open: 0, in_progress: 0}
+      }
     }
 
     var $ocorrencias_por_status {
@@ -282,45 +288,21 @@ query dashboard verb=GET {
     }
 
     var $ocorrencias_total {
-      value = 0
+      value = $ocorrencias_recentes|count
     }
 
-    foreach (["critical", "high", "medium", "low"]) {
-      each as $sev {
-        var $por_status_sev {
-          value = {}
-        }
-
-        foreach (["open", "in_progress"]) {
-          each as $st {
-            db.query ocorrencias {
-              join = {
-                equipamentos: {
-                  table: "equipamentos"
-                  where: $db.ocorrencias.equipamento_id == $db.equipamentos.id
-                }
-              }
-
-              where = $db.ocorrencias.severidade == $sev && $db.ocorrencias.status == $st && $db.equipamentos.localizacao_id ==? $input.localizacao_id
-              return = {type: "count"}
-            } as $n
-
-            var.update $por_status_sev {
-              value = $por_status_sev|set:$st:$n
-            }
-
-            var.update $ocorrencias_por_status {
-              value = $ocorrencias_por_status|set:$st:(($ocorrencias_por_status|get:$st) + $n)
-            }
-
-            math.add $ocorrencias_total {
-              value = $n
-            }
-          }
+    foreach ($ocorrencias_recentes) {
+      each as $oc {
+        var $sev_atual {
+          value = $ocorrencias|get:$oc.severidade
         }
 
         var.update $ocorrencias {
-          value = $ocorrencias|set:$sev:$por_status_sev
+          value = $ocorrencias|set:$oc.severidade:($sev_atual|set:$oc.status:(($sev_atual|get:$oc.status) + 1))
+        }
+
+        var.update $ocorrencias_por_status {
+          value = $ocorrencias_por_status|set:$oc.status:(($ocorrencias_por_status|get:$oc.status) + 1)
         }
       }
     }
