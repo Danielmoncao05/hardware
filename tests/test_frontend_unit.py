@@ -757,3 +757,30 @@ def test_users_api_errors_are_in_portuguese():
     for f in (ROOT / "xano" / "api" / "users").glob("*.xs"):
         for msg in re.findall(r'error = "([^"]*)"', f.read_text(encoding="utf-8")):
             assert not re.search(r"\b(the|not found|cannot|must|already|role)\b", msg, re.I), (f.name, msg)
+
+
+# ------------------------------------------------------------------ gráfico por setor (barras empilhadas)
+def test_sector_rows_split_total_by_status_and_hide_zero_segments():
+    from hardware.pages.dashboard import sector_row
+
+    row = sector_row({"localizacao": "Pronto-Socorro", "total": 7, "disponiveis": 4, "em_manutencao": 2, "criticos": 1})
+    assert row["total"] == 7 and (row["disponiveis"], row["em_manutencao"], row["criticos"]) == (4, 2, 1)
+    zero = sector_row({"localizacao": "UTI", "total": 3, "disponiveis": 3, "em_manutencao": 0, "criticos": 0})
+    assert zero["em_manutencao"] is None and zero["criticos"] is None  # sem segmento nem número na barra
+    assert zero["resumo"] == "3 disponíveis, 0 em manutenção, 0 com problemas críticos"
+    old = sector_row({"localizacao": "CC", "total": 5})  # resposta do Xano antes da divisão por status
+    assert old["total"] == 5 and old["disponiveis"] == 5
+
+
+def test_sector_chart_is_stacked_with_colors_labels_and_legend():
+    from hardware.pages.dashboard import sector_chart
+
+    rendered = str(sector_chart().render())
+    for color in ("#00A88F", "#FFCC00", "#E50000"):
+        assert color in rendered
+    assert rendered.count('stackId:"setor"') == 3
+    assert rendered.count("LabelList") >= 3 and 'fill:"#FFFFFF"' in rendered
+    # Legenda (os acentos saem escapados no render, por isso só o começo de cada rótulo)
+    for label in ("Dispon", "Em manuten", "Com problemas cr"):
+        assert rendered.count(label) >= 2, label  # nome da série (tooltip) e item da legenda
+    assert "angle:0" in rendered and 'textAnchor:"middle"' in rendered

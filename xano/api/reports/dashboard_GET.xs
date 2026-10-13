@@ -6,7 +6,8 @@
 //  - preventivas: atrasadas e previstas dentro de janela_dias (só planejadas; concluídas/canceladas ficam de fora)
 //  - ocorrências abertas e em andamento por severidade e status
 //  - manutenções concluídas nos últimos atividade_dias dias
-//  - equipamentos ativos por localização direta, ocorrências abertas/em andamento mais recentes e equipamentos
+//  - equipamentos ativos por localização direta (com a divisão disponíveis / em manutenção / críticos),
+//    ocorrências abertas/em andamento mais recentes e equipamentos
 //    críticos (fora de serviço ou com ocorrência crítica aberta/em andamento, mesma regra de GET alertas)
 // As listas não usam paginação (a consulta paginada devolvia lista vazia no Xano, ver users GET); os totais são a
 // contagem das listas e o app limita quantos itens mostra.
@@ -132,33 +133,12 @@ query dashboard verb=GET {
       return = {type: "list"}
     } as $proximas
 
-    // Equipamentos ativos por localização direta (só as localizações com algum equipamento)
+    // Localizações (nomes para os críticos e para a distribuição por setor, montada depois dos críticos)
     db.query localizacoes {
       sort = {nome: "asc"}
       output = ["id", "nome"]
       return = {type: "list"}
     } as $localizacoes
-
-    var $por_localizacao {
-      value = []
-    }
-
-    foreach ($localizacoes) {
-      each as $loc {
-        db.query equipamentos {
-          where = $db.equipamentos.localizacao_id == $loc.id && $db.equipamentos.status != "decommissioned" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
-          return = {type: "count"}
-        } as $n
-
-        conditional {
-          if ($n > 0) {
-            var.update $por_localizacao {
-              value = $por_localizacao|push:{localizacao_id: $loc.id, localizacao: $loc.nome, total: $n}
-            }
-          }
-        }
-      }
-    }
 
     // Ocorrências abertas e em andamento, mais recentes primeiro
     db.query ocorrencias {
@@ -272,6 +252,107 @@ query dashboard verb=GET {
             ocorrencia_id    : $occ.ocorrencia_id
             descricao_tecnica: $occ.descricao_tecnica
             ocorrencia_status: $occ.ocorrencia_status
+          }
+        }
+      }
+    }
+
+    // Equipamentos ativos por localização direta (só as localizações com algum equipamento), divididos em faixas que
+    // somam o total do setor: criticos (os da lista $criticos: fora de serviço ou com ocorrência crítica aberta),
+    // em_manutencao (em manutenção e não crítico) e disponiveis (o restante, operacionais). Uma consulta só para os
+    // equipamentos, em vez de uma contagem por localização.
+    var $crit_set {
+      value = {}
+    }
+
+    foreach ($equip_criticos) {
+      each as $eq {
+        var $k_crit {
+          value = $eq.id|to_text
+        }
+
+        var.update $crit_set {
+          value = $crit_set|set:$k_crit:true
+        }
+      }
+    }
+
+    db.query equipamentos {
+      where = $db.equipamentos.status != "decommissioned" && $db.equipamentos.localizacao_id ==? $input.localizacao_id
+      output = ["id", "status", "localizacao_id"]
+      return = {type: "list"}
+    } as $ativos
+
+    var $contagem {
+      value = {}
+    }
+
+    foreach ($ativos) {
+      each as $eq {
+        var $k_eq {
+          value = $eq.id|to_text
+        }
+
+        var $k_setor {
+          value = $eq.localizacao_id|to_text
+        }
+
+        var $faixa {
+          value = "disponiveis"
+        }
+
+        conditional {
+          if ($eq.status == "under_maintenance") {
+            var.update $faixa {
+              value = "em_manutencao"
+            }
+          }
+        }
+
+        conditional {
+          if (($crit_set|get:$k_eq) == true || $eq.status == "out_of_service") {
+            var.update $faixa {
+              value = "criticos"
+            }
+          }
+        }
+
+        var $atual {
+          value = ($contagem|get:$k_setor) ?? {disponiveis: 0, em_manutencao: 0, criticos: 0}
+        }
+
+        var.update $contagem {
+          value = $contagem|set:$k_setor:($atual|set:$faixa:(($atual|get:$faixa) + 1))
+        }
+      }
+    }
+
+    var $por_localizacao {
+      value = []
+    }
+
+    foreach ($localizacoes) {
+      each as $loc {
+        var $k_loc_setor {
+          value = $loc.id|to_text
+        }
+
+        var $c {
+          value = $contagem|get:$k_loc_setor
+        }
+
+        conditional {
+          if ($c != null) {
+            var.update $por_localizacao {
+              value = $por_localizacao|push:{
+                localizacao_id: $loc.id
+                localizacao   : $loc.nome
+                total         : $c.disponiveis + $c.em_manutencao + $c.criticos
+                disponiveis   : $c.disponiveis
+                em_manutencao : $c.em_manutencao
+                criticos      : $c.criticos
+              }
+            }
           }
         }
       }

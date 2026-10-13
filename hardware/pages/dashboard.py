@@ -76,6 +76,32 @@ def text_fields(row: dict, *keys: str) -> dict:
     return row | {k: row[k] if isinstance(row.get(k), (str, int, float)) else "" for k in keys}
 
 
+# Faixas do gráfico por setor, da base para o topo da barra: (chave na API, rótulo da legenda, cor)
+SECTOR_SERIES = [
+    ("disponiveis", "Disponíveis", "#00A88F"),
+    ("em_manutencao", "Em manutenção", "#FFCC00"),
+    ("criticos", "Com problemas críticos", "#E50000"),
+]
+
+
+def sector_row(row: dict) -> dict:
+    """Linha do gráfico por setor: total e as três faixas (que somam o total). Faixa zerada vira None, para o
+    segmento e o número não aparecerem na barra. Sem a divisão na resposta (Xano anterior), o total entra como
+    disponíveis."""
+    row = text_fields(row, "localizacao")
+    total = row.get("total") or 0
+    counts = {key: row.get(key) or 0 for key, _, _ in SECTOR_SERIES}
+    if not any(k in row for k, _, _ in SECTOR_SERIES):
+        counts["disponiveis"] = total
+    return {
+        "localizacao": row["localizacao"],
+        "total": sum(counts.values()) or total,
+        **{key: counts[key] or None for key in counts},
+        # Texto para leitores de tela (os valores None acima não servem para isso)
+        "resumo": ", ".join(f"{counts[key]} {label.lower()}" for key, label, _ in SECTOR_SERIES),
+    }
+
+
 def share(part: int, whole: int) -> int:
     """Porcentagem inteira de part em whole (0 quando whole é 0), para as barras de proporção."""
     return round(part * 100 / whole) if whole else 0
@@ -146,7 +172,7 @@ class DashboardState(OptionsState):
         today = now.date()
         self.hoje = long_date(today)
         self.setores = sorted(
-            (text_fields(s, "localizacao") for s in self.data.get("por_localizacao") or [] if isinstance(s, dict)),
+            (sector_row(s) for s in self.data.get("por_localizacao") or [] if isinstance(s, dict)),
             key=lambda s: (-(s.get("total") or 0), s.get("localizacao") or ""),
         )
         self.proximas_view = [
@@ -296,7 +322,37 @@ def stat_card(icon: str, label: str, value, color: str) -> rx.Component:
 
 
 def sector_chart() -> rx.Component:
+    """Barras empilhadas por setor: disponíveis na base, em manutenção no meio e com problemas críticos no topo; a
+    altura da barra é o total de equipamentos ativos do setor."""
     s = DashboardState
+    bars = [
+        rx.recharts.bar(
+            rx.recharts.label_list(data_key=key, position="center", fill="#FFFFFF", font_size=12, font_weight=600),
+            data_key=key,
+            name=label,
+            stack_id="setor",
+            fill=color,
+            # Só o segmento do topo tem os cantos de cima arredondados
+            radius=[4, 4, 0, 0] if key == "criticos" else [0, 0, 0, 0],
+        )
+        for key, label, color in SECTOR_SERIES
+    ]
+    legend = rx.hstack(
+        *[
+            rx.hstack(
+                rx.box(width="0.75rem", height="0.75rem", border_radius="3px", background=color, flex_shrink="0"),
+                rx.text(label, size="2"),
+                spacing="2",
+                align="center",
+            )
+            for _, label, color in SECTOR_SERIES
+        ],
+        justify="center",
+        wrap="wrap",
+        spacing="5",
+        width="100%",
+        padding_top="0.25rem",
+    )
     return section(
         "Distribuição de equipamentos por setor",
         rx.cond(
@@ -305,21 +361,26 @@ def sector_chart() -> rx.Component:
                 rx.box(
                     rx.recharts.bar_chart(
                         rx.recharts.cartesian_grid(stroke_dasharray="3 3", vertical=False, stroke=rx.color("gray", 5)),
-                        rx.recharts.x_axis(data_key="localizacao", tick={"fontSize": 11}, interval=0, angle=-20, text_anchor="end", height=60),
+                        # Nomes dos setores na horizontal, centralizados sob cada barra
+                        rx.recharts.x_axis(data_key="localizacao", tick={"fontSize": 11}, interval=0, angle=0, text_anchor="middle", height=40),
                         rx.recharts.y_axis(allow_decimals=False, width=32, tick={"fontSize": 11}),
                         rx.recharts.graphing_tooltip(),
-                        rx.recharts.bar(data_key="total", name="Equipamentos ativos", fill=rx.color("accent", 9), radius=[4, 4, 0, 0]),
+                        *bars,
                         data=s.setores,
                         width="100%",
                         height=300,
                     ),
                     aria_hidden="true",
                 ),
+                legend,
                 # Equivalente em texto do gráfico, lido por leitores de tela
                 rx.el.ul(
-                    rx.foreach(s.setores, lambda x: rx.el.li(x["localizacao"], ": ", x["total"].to_string(), " equipamento(s)")),
+                    rx.foreach(
+                        s.setores,
+                        lambda x: rx.el.li(x["localizacao"], ": ", x["total"].to_string(), " equipamento(s) (", x["resumo"], ")"),
+                    ),
                     class_name="sr-only",
-                    aria_label="Equipamentos ativos por setor",
+                    aria_label="Equipamentos ativos por setor e situação",
                 ),
                 width="100%",
             ),
