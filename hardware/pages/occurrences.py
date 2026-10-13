@@ -27,6 +27,9 @@ from ..options import OptionsState, local_to_ms, now_local_input, page_slice, to
 
 class OccurrenceState(OptionsState):
     queue: str = "open"
+    # As abas trocam no navegador, sem esperar o servidor (default_value); queue_key remonta as abas quando o
+    # servidor muda a aba por conta própria (ex.: depois de registrar uma ocorrência)
+    queue_key: int = 0
     equipamento_id: str = ""
     items: list[dict] = []
     page: int = 1
@@ -160,6 +163,7 @@ class OccurrenceState(OptionsState):
             self.saving = False
         self.report_open = False
         self.queue = "open"
+        self.queue_key += 1
         self.page = 1
         await self._refresh()
         yield rx.toast.success("Ocorrência registrada.")
@@ -338,8 +342,9 @@ def occurrences_page() -> rx.Component:
                 rx.tabs.trigger("Atribuídas a mim", value="mine"),
                 rx.tabs.trigger("Todas", value="all"),
             ),
-            value=s.queue,
+            default_value=s.queue,
             on_change=s.set_queue,
+            key=s.queue_key,
         ),
         error_callout(s.error),
         loading_overlay(s.loading),

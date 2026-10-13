@@ -50,6 +50,9 @@ MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "
 
 class MaintenanceState(OptionsState):
     view: str = "upcoming"
+    # Abas e Lista/Calendário trocam no navegador, sem esperar o servidor (default_value). Quando o servidor muda a
+    # aba por conta própria (ex.: entrar com filtro de equipamento), view_key remonta as abas com o valor novo.
+    view_key: int = 0
     equipamento_id: str = ""
     items: list[dict] = []
     page: int = 1
@@ -85,6 +88,7 @@ class MaintenanceState(OptionsState):
         if equipamento_id != self.equipamento_id:
             # Entrar com filtro mostra todos os registros do equipamento; limpar o filtro volta à fila padrão
             self.view = "all" if equipamento_id else "upcoming"
+            self.view_key += 1
         self.equipamento_id = equipamento_id
         self.page = 1
         today = dt.datetime.now(TZ).date()
@@ -406,8 +410,9 @@ def list_view() -> rx.Component:
                 rx.tabs.trigger("Atribuídas a mim", value="mine"),
                 rx.tabs.trigger("Todas", value="all"),
             ),
-            value=s.view,
+            default_value=s.view,
             on_change=s.set_view,
+            key=s.view_key,
         ),
         rx.box(
             rx.table.root(
@@ -616,7 +621,7 @@ def maintenance_page() -> rx.Component:
         rx.segmented_control.root(
             rx.segmented_control.item("Lista", value="list"),
             rx.segmented_control.item("Calendário", value="calendar"),
-            value=s.mode,
+            default_value=s.mode,
             on_change=s.set_mode,
             aria_label="Modo de visualização",
         ),

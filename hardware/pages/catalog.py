@@ -618,7 +618,8 @@ def catalog_page() -> rx.Component:
                 ),
                 value="localizacoes",
             ),
-            value=s.tab,
+            # Troca de aba no navegador, sem esperar o servidor
+            default_value=s.tab,
             on_change=s.set_tab,
             width="100%",
         ),

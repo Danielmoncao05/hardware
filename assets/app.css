@@ -1,19 +1,94 @@
-/* Estilos globais do HospitalTech (change visual-refresh). Cores sempre pelos tokens do Radix Themes, para
-   funcionar nos temas claro e escuro. */
+/* Estilos globais do HospitalTech (changes visual-refresh e visual-polish). Cores sempre pelos tokens do Radix
+   Themes, para funcionar nos temas claro e escuro. */
 
-/* ---- Tabelas da área autenticada: cartão com borda, cabeçalho destacado e realce da linha sob o cursor ---- */
+/* ---- Tipografia ---- */
+.radix-themes {
+  --default-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --heading-font-family: var(--default-font-family);
+}
+
+::selection {
+  background: var(--accent-a5);
+}
+
+/* ---- Fundo da área de conteúdo: cinza bem claro com um brilho da cor da marca no topo ---- */
+#conteudo {
+  background:
+    radial-gradient(60rem 18rem at 20% -6rem, var(--accent-a3), transparent 70%),
+    var(--gray-2);
+}
+
+/* ---- Barra superior: translúcida com desfoque e uma linha fina da cor da marca no topo ---- */
+.hhm-top-bar {
+  background: color-mix(in srgb, var(--color-panel-solid) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--gray-a4);
+  box-shadow: 0 1px 0 var(--gray-a2), 0 6px 18px -12px var(--gray-a8);
+}
+
+.hhm-top-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-9), var(--cyan-9), var(--accent-9));
+}
+
+/* ---- Menu lateral ---- */
+.hhm-nav-link {
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.hhm-nav-link .hhm-nav-icon {
+  transition: background-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out;
+}
+
+.hhm-nav-link:hover .hhm-nav-icon {
+  transform: scale(1.06);
+}
+
+.hhm-nav-link[aria-current="page"] .hhm-nav-icon {
+  box-shadow: 0 4px 10px -2px var(--accent-a8);
+}
+
+/* ---- Cartões: borda suave, sombra leve e realce ao passar o cursor ---- */
+#conteudo .rt-Card {
+  --card-background-color: var(--color-panel-solid);
+  box-shadow: 0 1px 2px var(--gray-a3), 0 4px 16px -8px var(--gray-a6);
+  transition: box-shadow 180ms ease-out, transform 180ms ease-out;
+}
+
+#conteudo .rt-Card:hover {
+  box-shadow: 0 2px 4px var(--gray-a3), 0 10px 28px -12px var(--gray-a8);
+}
+
+#conteudo a.rt-Card:hover,
+#conteudo .rt-Card[data-clickable="true"]:hover {
+  transform: translateY(-2px);
+}
+
+/* ---- Tabelas da área autenticada: cartão com borda, cabeçalho destacado, linhas alternadas e realce ---- */
 #conteudo .rt-TableRoot {
   background: var(--color-panel-solid);
   border: 1px solid var(--gray-a5);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-4);
   overflow: hidden;
+  box-shadow: 0 1px 2px var(--gray-a3), 0 4px 16px -10px var(--gray-a6);
 }
 
 #conteudo .rt-TableHeader .rt-TableColumnHeaderCell {
   background: var(--gray-a2);
   color: var(--gray-11);
+  font-size: var(--font-size-1);
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+#conteudo .rt-TableBody .rt-TableRow:nth-child(even) {
+  background: var(--gray-a2);
 }
 
 #conteudo .rt-TableBody .rt-TableRow {
@@ -21,11 +96,94 @@
 }
 
 #conteudo .rt-TableBody .rt-TableRow:hover {
-  background: var(--accent-a2);
+  background: var(--accent-a3);
 }
 
-/* ---- Animação de entrada do painel (dashboard-redesign, design decisão 6): cada bloco aparece subindo
-   levemente, em sequência pelo atraso --hhm-delay. Roda uma vez, quando a página monta. ---- */
+/* ---- Abas: lista em formato de "pílula" ---- */
+#conteudo .rt-TabsList {
+  box-shadow: none;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--gray-a3);
+  border-radius: var(--radius-4);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#conteudo .rt-TabsTrigger {
+  border-radius: var(--radius-3);
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+#conteudo .rt-TabsTrigger::before {
+  display: none;
+}
+
+#conteudo .rt-TabsTrigger[data-state="active"] {
+  background: var(--color-panel-solid);
+  color: var(--accent-11);
+  box-shadow: 0 1px 3px var(--gray-a5);
+}
+
+#conteudo .rt-TabsTrigger[data-state="active"] .rt-TabsTriggerInnerHidden,
+#conteudo .rt-TabsTrigger[data-state="active"] .rt-TabsTriggerInner {
+  font-weight: 600;
+}
+
+/* ---- Botões e selos ---- */
+.rt-Button,
+.rt-IconButton {
+  transition: background-color 150ms ease-out, box-shadow 150ms ease-out, transform 120ms ease-out;
+}
+
+.rt-Button.rt-variant-solid:not([data-disabled]):hover {
+  box-shadow: 0 6px 14px -6px var(--accent-a10);
+}
+
+.rt-Button:not([data-disabled]):active,
+.rt-IconButton:not([data-disabled]):active {
+  transform: translateY(1px);
+}
+
+#conteudo .rt-Badge {
+  border-radius: 9999px;
+  padding-inline: 0.55em;
+  font-weight: 500;
+}
+
+/* ---- Campos: foco com halo da cor da marca ---- */
+.rt-TextFieldRoot:focus-within,
+.rt-TextAreaRoot:focus-within,
+#conteudo select:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-a4);
+}
+
+/* ---- Barra de rolagem discreta ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-a7) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--gray-a6);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gray-a8);
+}
+
+/* ---- Animações de entrada ---- */
+/* Painel (dashboard-redesign, design decisão 6): cada bloco aparece subindo levemente, em sequência pelo atraso
+   --hhm-delay. Roda uma vez, quando a página monta. */
 @keyframes hhm-enter {
   from {
     opacity: 0;
@@ -48,8 +206,19 @@
     animation: none;
   }
 
-  #conteudo .rt-TableBody .rt-TableRow {
+  #conteudo .rt-TableBody .rt-TableRow,
+  #conteudo .rt-Card,
+  .hhm-nav-link,
+  .hhm-nav-link .hhm-nav-icon,
+  .rt-Button,
+  .rt-IconButton {
     transition: none;
+  }
+
+  #conteudo a.rt-Card:hover,
+  #conteudo .rt-Card[data-clickable="true"]:hover,
+  .hhm-nav-link:hover .hhm-nav-icon {
+    transform: none;
   }
 }
 

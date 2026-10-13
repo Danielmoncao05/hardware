@@ -27,8 +27,16 @@ from .pages.users import UsersState, users_page
 from .components import BRAND
 from .state import AuthState
 
-# app.css: estilo das tabelas da área autenticada e animação de entrada do painel (classe hhm-enter)
-app = rx.App(stylesheets=["/app.css"], head_components=[rx.script(src="/password.js")])
+# Tema: azul da marca (o mesmo indigo da página institucional), cinza azulado e cantos arredondados.
+# app.css: acabamento visual da área autenticada (barra superior, cartões, tabelas, abas) e animações de entrada.
+app = rx.App(
+    theme=rx.theme(accent_color="indigo", gray_color="slate", radius="large"),
+    stylesheets=[
+        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+        "/app.css",
+    ],
+    head_components=[rx.script(src="/password.js")],
+)
 
 # Pública: página institucional da HospitalTech (estática, sem on_load nem chamadas à API)
 app.add_page(

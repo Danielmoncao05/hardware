@@ -267,22 +267,31 @@ def nav_link(text: str, href: str, icon: str) -> rx.Component:
         active = active | (path == extra) | path.startswith(extra + "/")
     return rx.link(
         rx.hstack(
-            rx.icon(icon, size=18, aria_hidden="true"),
-            rx.text(text, size="3", weight=rx.cond(active, "medium", "regular")),
-            spacing="2",
+            rx.center(
+                rx.icon(icon, size=16, aria_hidden="true"),
+                width="1.75rem",
+                height="1.75rem",
+                flex_shrink="0",
+                border_radius="var(--radius-2)",
+                color=rx.cond(active, "white", rx.color("gray", 11)),
+                background=rx.cond(active, rx.color("accent", 9), rx.color("gray", 3)),
+                class_name="hhm-nav-icon",
+            ),
+            rx.text(text, size="2", weight=rx.cond(active, "bold", "medium")),
+            spacing="3",
             align="center",
         ),
         href=href,
         underline="none",
-        padding_x="0.75rem",
-        padding_y="0.5rem",
-        border_radius="var(--radius-2)",
+        padding_x="0.5rem",
+        padding_y="0.375rem",
+        border_radius="var(--radius-3)",
         width="100%",
         color=rx.cond(active, rx.color("accent", 11), rx.color("gray", 12)),
         background=rx.cond(active, rx.color("accent", 3), "transparent"),
-        box_shadow=rx.cond(active, f"inset 3px 0 0 {rx.color('accent', 9)}", "none"),
         aria_current=rx.cond(active, "page", "false"),
-        _hover={"background": rx.color("accent", 3)},
+        class_name="hhm-nav-link",
+        _hover={"background": rx.cond(active, rx.color("accent", 4), rx.color("gray", 3))},
     )
 
 
@@ -345,7 +354,8 @@ def brand_mark(size: str = "5") -> rx.Component:
     return rx.hstack(
         rx.center(
             rx.icon("heart_pulse", size=18 if size == "5" else 22, color="white", aria_hidden="true"),
-            background=rx.color("accent", 9),
+            background=f"linear-gradient(135deg, {rx.color('accent', 9)} 0%, {rx.color('cyan', 9)} 100%)",
+            box_shadow=f"0 4px 12px {rx.color('accent', 6, True)}",
             border_radius="var(--radius-3)",
             width=box,
             height=box,
@@ -422,21 +432,87 @@ def top_bar() -> rx.Component:
         position="sticky",
         top="0",
         z_index="10",
-        background=rx.color("gray", 1),
-        border_bottom=f"1px solid {rx.color('gray', 5)}",
+        class_name="hhm-top-bar",
     )
 
 
-def layout(title: str, *children, actions: rx.Component | None = None, subtitle: str | None = None) -> rx.Component:
+# Ícone do cabeçalho de cada tela (o mesmo do menu); telas de detalhe passam o ícone em layout(icon=...)
+PAGE_ICONS = {
+    "Painel": "layout_dashboard",
+    "Acompanhamento dos equipamentos": "activity",
+    "Equipamentos": "monitor",
+    "Manutenções": "wrench",
+    "Ocorrências": "circle_alert",
+    "Catálogos e localizações": "library",
+    "Relatórios": "file_chart_column",
+    "Usuários e perfis": "users",
+    "Acesso não permitido": "shield_alert",
+}
+
+
+def page_header(title, subtitle: str | None = None, actions: rx.Component | None = None, icon: str | None = None) -> rx.Component:
+    """Título da tela com o ícone da área num quadrado da cor da marca, subtítulo e ações à direita."""
+    icon = icon or (PAGE_ICONS.get(title) if isinstance(title, str) else None) or "layout_grid"
+    return rx.hstack(
+        rx.hstack(
+            rx.center(
+                rx.icon(icon, size=22, aria_hidden="true"),
+                width="2.75rem",
+                height="2.75rem",
+                flex_shrink="0",
+                border_radius="var(--radius-4)",
+                color=rx.color("accent", 11),
+                background=rx.color("accent", 3),
+                border=f"1px solid {rx.color('accent', 5, True)}",
+            ),
+            rx.vstack(
+                rx.heading(title, size="6", as_="h1", letter_spacing="-0.01em"),
+                rx.text(subtitle, size="2", color_scheme="gray") if subtitle else rx.fragment(),
+                spacing="0",
+            ),
+            spacing="3",
+            align="center",
+        ),
+        rx.spacer(),
+        actions if actions is not None else rx.fragment(),
+        align="center",
+        width="100%",
+        wrap="wrap",
+        spacing="3",
+        padding_bottom="0.75rem",
+        border_bottom=f"1px solid {rx.color('gray', 4, True)}",
+    )
+
+
+def layout(title: str, *children, actions: rx.Component | None = None, subtitle: str | None = None, icon: str | None = None) -> rx.Component:
     """Estrutura das páginas autenticadas: barra superior; abaixo, barra lateral de navegação no desktop (no
     tablet/celular a navegação fica no menu recolhível da barra superior). subtitle: para que a tela serve."""
     sidebar = rx.box(
-        rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
+        rx.vstack(
+            rx.text("MENU", size="1", weight="bold", color_scheme="gray", letter_spacing="0.08em", padding_x="0.5rem"),
+            rx.el.nav(rx.vstack(*nav_items(), spacing="1", width="100%"), aria_label="Navegação principal", width="100%"),
+            rx.spacer(),
+            rx.hstack(
+                rx.icon("shield_check", size=16, color=rx.color("accent", 11), aria_hidden="true"),
+                rx.text("Sem dados clínicos de pacientes", size="1", color_scheme="gray"),
+                spacing="2",
+                align="center",
+                padding="0.625rem",
+                border_radius="var(--radius-3)",
+                background=rx.color("accent", 2),
+                border=f"1px solid {rx.color('accent', 4, True)}",
+                width="100%",
+            ),
+            spacing="2",
+            height="100%",
+            width="100%",
+        ),
         padding="0.75rem",
         height=f"calc(100vh - {TOP_BAR_HEIGHT})",
         width="15rem",
         min_width="15rem",
-        border_right=f"1px solid {rx.color('gray', 5)}",
+        border_right=f"1px solid {rx.color('gray', 4, True)}",
+        background=rx.color("gray", 1),
         position="sticky",
         top=TOP_BAR_HEIGHT,
         overflow_y="auto",
@@ -448,30 +524,18 @@ def layout(title: str, *children, actions: rx.Component | None = None, subtitle:
             sidebar,
             rx.el.main(
                 rx.vstack(
-                    rx.hstack(
-                        rx.vstack(
-                            rx.heading(title, size="6", as_="h1"),
-                            rx.text(subtitle, size="2", color_scheme="gray") if subtitle else rx.fragment(),
-                            spacing="1",
-                        ),
-                        rx.spacer(),
-                        actions if actions is not None else rx.fragment(),
-                        align="center",
-                        width="100%",
-                        wrap="wrap",
-                        spacing="3",
-                    ),
+                    page_header(title, subtitle, actions, icon),
                     *children,
                     spacing="4",
                     width="100%",
                     max_width="96rem",
                     padding=["1rem", "1rem", "1.5rem"],
+                    class_name="hhm-page",
                 ),
                 id="conteudo",
                 width="100%",
                 min_width="0",
                 min_height=f"calc(100vh - {TOP_BAR_HEIGHT})",
-                background=rx.color("gray", 2),
             ),
             spacing="0",
             align="start",
@@ -491,7 +555,13 @@ def empty_row(cols: int, text: str = "Nenhum registro encontrado.") -> rx.Compon
     return rx.table.row(
         rx.table.cell(
             rx.vstack(
-                rx.icon("inbox", size=28, color=rx.color("gray", 8), aria_hidden="true"),
+                rx.center(
+                    rx.icon("inbox", size=24, color=rx.color("accent", 10), aria_hidden="true"),
+                    width="3rem",
+                    height="3rem",
+                    border_radius="9999px",
+                    background=rx.color("accent", 3),
+                ),
                 rx.text(text, size="2", color_scheme="gray"),
                 align="center",
                 spacing="2",

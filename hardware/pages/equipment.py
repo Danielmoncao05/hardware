@@ -377,6 +377,7 @@ def equipment_form_page() -> rx.Component:
             width="100%",
             max_width="56rem",
         ),
+        icon="monitor",
         subtitle="Identificação, modelo, localização e dados de aquisição do equipamento",
     )
 
@@ -819,5 +820,6 @@ def equipment_detail_page() -> rx.Component:
         ),
         dialogs(),
         actions=detail_actions(),
+        icon="monitor",
         subtitle="Dados técnicos, componentes instalados e histórico de serviços",
     )

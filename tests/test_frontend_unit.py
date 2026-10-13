@@ -669,7 +669,7 @@ def test_dashboard_enter_animation_respects_reduced_motion():
     css = (ROOT / "assets" / "app.css").read_text(encoding="utf-8")
     assert "@keyframes hhm-enter" in css and "prefers-reduced-motion: reduce" in css
     app = (ROOT / "hardware" / "hardware.py").read_text(encoding="utf-8")
-    assert 'stylesheets=["/app.css"]' in app
+    assert '"/app.css",' in app and "stylesheets=" in app
     from hardware.pages.dashboard import enter
 
     rendered = str(enter(rx_text("x"), 3).render())
